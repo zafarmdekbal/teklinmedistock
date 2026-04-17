@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { AppShell } from "@/components/app-shell";
-import { authStore } from "@/lib/storage";
+import { authStore, seedDemoProducts } from "@/lib/storage";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: () => {
@@ -12,6 +13,10 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppLayout() {
+  useEffect(() => {
+    seedDemoProducts();
+  }, []);
+
   return (
     <AppShell>
       <Outlet />

@@ -140,6 +140,42 @@ export const authStore = {
   logout: () => authStore.setSession(null),
 };
 
+// Demo seed
+export function seedDemoProducts(force = false) {
+  if (typeof window === "undefined") return;
+  const existing = productsStore.list();
+  if (existing.length > 0 && !force) return;
+
+  const today = new Date();
+  const addMonths = (m: number) => {
+    const d = new Date(today);
+    d.setMonth(d.getMonth() + m);
+    return d.toISOString();
+  };
+
+  const demo: Array<Omit<Product, "id" | "createdAt">> = [
+    { name: "Paracetamol 500mg", category: "Analgesic", price: 25, stock: 120, expiry: addMonths(18), batch: "PCM2245", manufacturer: "Cipla", sku: "MED-001", taxPercent: 12, prescription: false },
+    { name: "Amoxicillin 250mg", category: "Antibiotic", price: 85, stock: 40, expiry: addMonths(12), batch: "AMX1180", manufacturer: "Sun Pharma", sku: "MED-002", taxPercent: 12, prescription: true },
+    { name: "Cetirizine 10mg", category: "Antihistamine", price: 35, stock: 75, expiry: addMonths(20), batch: "CTZ0921", manufacturer: "Dr. Reddy's", sku: "MED-003", taxPercent: 5, prescription: false },
+    { name: "Ibuprofen 400mg", category: "Analgesic", price: 45, stock: 8, expiry: addMonths(2), batch: "IBU3340", manufacturer: "Abbott", sku: "MED-004", taxPercent: 12, prescription: false },
+    { name: "Metformin 500mg", category: "Diabetes", price: 60, stock: 90, expiry: addMonths(15), batch: "MET7702", manufacturer: "USV", sku: "MED-005", taxPercent: 5, prescription: true },
+    { name: "Omeprazole 20mg", category: "Gastro", price: 55, stock: 50, expiry: addMonths(10), batch: "OMP4412", manufacturer: "Cipla", sku: "MED-006", taxPercent: 12, prescription: true },
+    { name: "Vitamin D3 60K", category: "Supplement", price: 95, stock: 30, expiry: addMonths(24), batch: "VTD0088", manufacturer: "Mankind", sku: "MED-007", taxPercent: 18, prescription: false },
+    { name: "ORS Sachet (Orange)", category: "Hydration", price: 22, stock: 200, expiry: addMonths(14), batch: "ORS5521", manufacturer: "FDC", sku: "MED-008", taxPercent: 5, prescription: false },
+    { name: "Cough Syrup 100ml", category: "Cold & Flu", price: 110, stock: 18, expiry: addMonths(9), batch: "CGH1190", manufacturer: "Glenmark", sku: "MED-009", taxPercent: 12, prescription: false },
+    { name: "Insulin Pen 100IU", category: "Diabetes", price: 720, stock: 12, expiry: addMonths(6), batch: "INS0034", manufacturer: "Novo Nordisk", sku: "MED-010", taxPercent: 5, prescription: true },
+    { name: "Surgical Mask (50pc)", category: "Consumable", price: 180, stock: 60, expiry: addMonths(36), batch: "MSK2024", manufacturer: "3M", sku: "MED-011", taxPercent: 18, prescription: false },
+    { name: "Digital Thermometer", category: "Device", price: 250, stock: 15, expiry: addMonths(48), batch: "THR0012", manufacturer: "Omron", sku: "MED-012", taxPercent: 18, prescription: false },
+  ];
+
+  const list = demo.map((p) => ({
+    ...p,
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+  }));
+  productsStore.save(force ? list : [...list, ...existing]);
+}
+
 // Theme
 export const themeStore = {
   get: () => read<"light" | "dark">(KEYS.theme, "light"),

@@ -151,7 +151,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             {sidebar}
           </ResizablePanel>
-          <ResizableHandle withHandle />
+          <ResizableHandle className="pointer-events-none opacity-0" />
           <ResizablePanel id="main" className="h-full">
             {main}
           </ResizablePanel>

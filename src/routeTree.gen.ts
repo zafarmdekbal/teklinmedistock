@@ -16,6 +16,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppSellRouteImport } from './routes/_app.sell'
+import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
 import { Route as AppInventoryRouteImport } from './routes/_app.inventory'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppCartRouteImport } from './routes/_app.cart'
@@ -56,6 +57,11 @@ const AppSellRoute = AppSellRouteImport.update({
   path: '/sell',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRevenueRoute = AppRevenueRouteImport.update({
+  id: '/revenue',
+  path: '/revenue',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppInventoryRoute = AppInventoryRouteImport.update({
   id: '/inventory',
   path: '/inventory',
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/cart': typeof AppCartRoute
   '/dashboard': typeof AppDashboardRoute
   '/inventory': typeof AppInventoryRoute
+  '/revenue': typeof AppRevenueRoute
   '/sell': typeof AppSellRoute
   '/bills/$id': typeof AppBillsIdRoute
 }
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/cart': typeof AppCartRoute
   '/dashboard': typeof AppDashboardRoute
   '/inventory': typeof AppInventoryRoute
+  '/revenue': typeof AppRevenueRoute
   '/sell': typeof AppSellRoute
   '/': typeof AppIndexRoute
   '/bills/$id': typeof AppBillsIdRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/_app/cart': typeof AppCartRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/inventory': typeof AppInventoryRoute
+  '/_app/revenue': typeof AppRevenueRoute
   '/_app/sell': typeof AppSellRoute
   '/_app/': typeof AppIndexRoute
   '/_app/bills/$id': typeof AppBillsIdRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/dashboard'
     | '/inventory'
+    | '/revenue'
     | '/sell'
     | '/bills/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/dashboard'
     | '/inventory'
+    | '/revenue'
     | '/sell'
     | '/'
     | '/bills/$id'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/_app/cart'
     | '/_app/dashboard'
     | '/_app/inventory'
+    | '/_app/revenue'
     | '/_app/sell'
     | '/_app/'
     | '/_app/bills/$id'
@@ -225,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSellRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/revenue': {
+      id: '/_app/revenue'
+      path: '/revenue'
+      fullPath: '/revenue'
+      preLoaderRoute: typeof AppRevenueRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/inventory': {
       id: '/_app/inventory'
       path: '/inventory'
@@ -280,6 +299,7 @@ interface AppRouteChildren {
   AppCartRoute: typeof AppCartRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppInventoryRoute: typeof AppInventoryRoute
+  AppRevenueRoute: typeof AppRevenueRoute
   AppSellRoute: typeof AppSellRoute
   AppIndexRoute: typeof AppIndexRoute
 }
@@ -289,6 +309,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCartRoute: AppCartRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppInventoryRoute: AppInventoryRoute,
+  AppRevenueRoute: AppRevenueRoute,
   AppSellRoute: AppSellRoute,
   AppIndexRoute: AppIndexRoute,
 }
@@ -305,3 +326,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

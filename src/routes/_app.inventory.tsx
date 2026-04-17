@@ -25,7 +25,12 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
+type InventorySearch = { add?: number };
+
 export const Route = createFileRoute("/_app/inventory")({
+  validateSearch: (search: Record<string, unknown>): InventorySearch => ({
+    add: search.add ? Number(search.add) : undefined,
+  }),
   component: InventoryPage,
 });
 

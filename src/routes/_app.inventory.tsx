@@ -25,7 +25,12 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
+type InventorySearch = { add?: number };
+
 export const Route = createFileRoute("/_app/inventory")({
+  validateSearch: (search: Record<string, unknown>): InventorySearch => ({
+    add: search.add ? Number(search.add) : undefined,
+  }),
   component: InventoryPage,
 });
 
@@ -62,8 +67,20 @@ function InventoryPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(empty);
 
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+
   const refresh = () => setItems(productsStore.list());
   useEffect(refresh, []);
+
+  useEffect(() => {
+    if (search.add) {
+      setEditing(null);
+      setForm(empty);
+      setOpen(true);
+      navigate({ search: {}, replace: true });
+    }
+  }, [search.add, navigate]);
 
   const filtered = items.filter(
     (p) =>

@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomerDetailsDialog } from "@/components/customer-details-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/sell")({
@@ -22,6 +29,8 @@ function SellPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
   const [customerOpen, setCustomerOpen] = useState(false);
+  const [qtyProduct, setQtyProduct] = useState<Product | null>(null);
+  const [qtyValue, setQtyValue] = useState(1);
   const cart = useCart();
   const { session } = useAuth();
   const navigate = useNavigate();
@@ -41,9 +50,16 @@ function SellPage() {
     [products, query],
   );
 
-  const handleAdd = (p: Product) => {
-    const { isFirst } = cart.add(p, 1);
-    toast.success(`${p.name} added`);
+  const openQtyPicker = (p: Product) => {
+    setQtyProduct(p);
+    setQtyValue(1);
+  };
+
+  const confirmAdd = () => {
+    if (!qtyProduct) return;
+    const { isFirst } = cart.add(qtyProduct, qtyValue);
+    toast.success(`${qtyProduct.name} × ${qtyValue} added`);
+    setQtyProduct(null);
     if (isFirst && !cart.customerSubmitted) {
       setCustomerOpen(true);
     }
@@ -76,6 +92,10 @@ function SellPage() {
 
   const hasCustomer =
     cart.customer.name.trim() || cart.customer.phone.trim() || cart.customer.notes.trim();
+
+  const maxQty = qtyProduct
+    ? qtyProduct.stock - (cart.items.find((i) => i.product.id === qtyProduct.id)?.qty ?? 0)
+    : 1;
 
   return (
     <div className="space-y-6">
@@ -112,7 +132,7 @@ function SellPage() {
               {filtered.map((p, i) => (
                 <button
                   key={p.id}
-                  onClick={() => handleAdd(p)}
+                  onClick={() => openQtyPicker(p)}
                   className="text-left rounded-xl border bg-card p-4 shadow-soft hover:shadow-glow hover:-translate-y-0.5 transition-smooth animate-fade-in"
                   style={{ animationDelay: `${i * 30}ms` }}
                 >
@@ -245,6 +265,70 @@ function SellPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Quantity picker dialog */}
+      <Dialog open={!!qtyProduct} onOpenChange={(v) => !v && setQtyProduct(null)}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="text-base">Add to cart</DialogTitle>
+          </DialogHeader>
+          {qtyProduct && (
+            <div className="space-y-4">
+              <div>
+                <div className="font-medium">{qtyProduct.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {formatMoney(qtyProduct.price)} per unit · {maxQty} available
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-4">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={() => setQtyValue(Math.max(1, qtyValue - 1))}
+                  disabled={qtyValue <= 1}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Input
+                  type="number"
+                  min={1}
+                  max={maxQty}
+                  value={qtyValue}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (!isNaN(v)) setQtyValue(Math.max(1, Math.min(maxQty, v)));
+                  }}
+                  className="w-20 text-center text-lg font-semibold tabular-nums"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={() => setQtyValue(Math.min(maxQty, qtyValue + 1))}
+                  disabled={qtyValue >= maxQty}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="text-center text-sm text-muted-foreground">
+                Total: <span className="font-semibold text-foreground">{formatMoney(qtyProduct.price * qtyValue)}</span>
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setQtyProduct(null)}>
+                  Cancel
+                </Button>
+                <Button className="shadow-soft" onClick={confirmAdd} disabled={maxQty < 1}>
+                  <ShoppingCart className="h-4 w-4" /> Add × {qtyValue}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <CustomerDetailsDialog open={customerOpen} onOpenChange={setCustomerOpen} />
     </div>

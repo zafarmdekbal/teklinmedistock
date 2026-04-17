@@ -140,30 +140,73 @@ function DashboardPage() {
         </Card>
 
         <Card className="shadow-soft animate-fade-in">
-          <CardHeader>
-            <CardTitle className="text-base">Attention needed</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Expiring soon</CardTitle>
+            <span className="text-xs text-muted-foreground">Next 60 days</span>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {lowStock.length === 0 && expiringSoon.length === 0 ? (
-              <p className="text-sm text-muted-foreground">All good — nothing urgent.</p>
+          <CardContent className="space-y-2">
+            {expired.length === 0 && expiringSoon.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No products expiring soon.</p>
             ) : (
               <>
-                {lowStock.slice(0, 3).map((p) => (
-                  <div key={p.id} className="flex justify-between text-sm">
-                    <span className="truncate">{p.name}</span>
-                    <span className="text-warning-foreground bg-warning/30 px-2 py-0.5 rounded-md text-xs">
-                      {p.stock} left
+                {expired.slice(0, 3).map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-smooth"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium text-sm truncate">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Batch {p.batch ?? "—"} · {p.stock} in stock
+                      </div>
+                    </div>
+                    <span className="text-destructive bg-destructive/10 px-2 py-0.5 rounded-md text-xs font-medium shrink-0">
+                      Expired {new Date(p.expiry).toLocaleDateString()}
                     </span>
                   </div>
                 ))}
-                {expiringSoon.slice(0, 3).map((p) => (
-                  <div key={p.id} className="flex justify-between text-sm">
-                    <span className="truncate">{p.name}</span>
-                    <span className="text-destructive bg-destructive/10 px-2 py-0.5 rounded-md text-xs">
-                      Expires {new Date(p.expiry).toLocaleDateString()}
-                    </span>
+                {expiringSoon.slice(0, 6).map((p) => {
+                  const days = Math.max(
+                    0,
+                    Math.ceil((new Date(p.expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+                  );
+                  const urgent = days <= 14;
+                  return (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-smooth"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium text-sm truncate">{p.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Batch {p.batch ?? "—"} · {p.stock} in stock
+                        </div>
+                      </div>
+                      <span
+                        className={
+                          urgent
+                            ? "text-destructive bg-destructive/10 px-2 py-0.5 rounded-md text-xs font-medium shrink-0"
+                            : "text-warning-foreground bg-warning/30 px-2 py-0.5 rounded-md text-xs font-medium shrink-0"
+                        }
+                      >
+                        {days}d · {new Date(p.expiry).toLocaleDateString()}
+                      </span>
+                    </div>
+                  );
+                })}
+                {lowStock.length > 0 && (
+                  <div className="pt-2 mt-2 border-t border-border/60 space-y-1">
+                    <div className="text-xs font-medium text-muted-foreground">Low stock</div>
+                    {lowStock.slice(0, 3).map((p) => (
+                      <div key={p.id} className="flex justify-between text-sm">
+                        <span className="truncate">{p.name}</span>
+                        <span className="text-warning-foreground bg-warning/30 px-2 py-0.5 rounded-md text-xs">
+                          {p.stock} left
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </>
             )}
           </CardContent>

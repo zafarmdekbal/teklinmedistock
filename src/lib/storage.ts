@@ -27,6 +27,8 @@ export type Bill = {
   id: string;
   number: string; // human friendly INV-0001
   customerName?: string;
+  customerPhone?: string;
+  customerNotes?: string;
   items: BillItem[];
   subtotal: number;
   tax: number;

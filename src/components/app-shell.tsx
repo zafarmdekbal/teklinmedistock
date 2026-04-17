@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  ShoppingBag,
   ReceiptText,
   LogOut,
   Pill,
@@ -19,6 +20,7 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/inventory", label: "Inventory", icon: Package },
   { to: "/sell", label: "Sell", icon: ShoppingCart },
+  { to: "/cart", label: "Cart", icon: ShoppingBag },
   { to: "/bills", label: "Bills", icon: ReceiptText },
 ] as const;
 
@@ -58,7 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Icon className="h-4 w-4" />
                 <span className="flex-1">{label}</span>
-                {to === "/sell" && count > 0 && (
+                {to === "/cart" && count > 0 && (
                   <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-semibold px-2 py-0.5">
                     {count}
                   </span>

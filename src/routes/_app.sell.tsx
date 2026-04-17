@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Minus, Plus, Search, ShoppingCart, Trash2, X } from "lucide-react";
+import { Minus, Plus, Search, ShoppingCart, Trash2, UserRound, X, Pencil } from "lucide-react";
 import { productsStore, billsStore, type Product } from "@/lib/storage";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { CustomerDetailsDialog } from "@/components/customer-details-dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/sell")({
@@ -21,7 +21,7 @@ function formatMoney(n: number) {
 function SellPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
-  const [customer, setCustomer] = useState("");
+  const [customerOpen, setCustomerOpen] = useState(false);
   const cart = useCart();
   const { session } = useAuth();
   const navigate = useNavigate();
@@ -41,10 +41,20 @@ function SellPage() {
     [products, query],
   );
 
+  const handleAdd = (p: Product) => {
+    const { isFirst } = cart.add(p, 1);
+    toast.success(`${p.name} added`);
+    if (isFirst && !cart.customerSubmitted) {
+      setCustomerOpen(true);
+    }
+  };
+
   const checkout = () => {
     if (cart.items.length === 0) return;
     const bill = billsStore.add({
-      customerName: customer.trim() || undefined,
+      customerName: cart.customer.name || undefined,
+      customerPhone: cart.customer.phone || undefined,
+      customerNotes: cart.customer.notes || undefined,
       cashier: session?.name,
       items: cart.items.map((i) => ({
         productId: i.product.id,
@@ -59,11 +69,13 @@ function SellPage() {
     });
     cart.items.forEach((i) => productsStore.decrementStock(i.product.id, i.qty));
     cart.clear();
-    setCustomer("");
     setProducts(productsStore.list());
     toast.success(`Bill ${bill.number} generated`);
     navigate({ to: "/bills/$id", params: { id: bill.id } });
   };
+
+  const hasCustomer =
+    cart.customer.name.trim() || cart.customer.phone.trim() || cart.customer.notes.trim();
 
   return (
     <div className="space-y-6">
@@ -100,10 +112,7 @@ function SellPage() {
               {filtered.map((p, i) => (
                 <button
                   key={p.id}
-                  onClick={() => {
-                    cart.add(p, 1);
-                    toast.success(`${p.name} added`);
-                  }}
+                  onClick={() => handleAdd(p)}
                   className="text-left rounded-xl border bg-card p-4 shadow-soft hover:shadow-glow hover:-translate-y-0.5 transition-smooth animate-fade-in"
                   style={{ animationDelay: `${i * 30}ms` }}
                 >
@@ -198,17 +207,26 @@ function SellPage() {
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="cust" className="text-xs">
-                Customer name (optional)
-              </Label>
-              <Input
-                id="cust"
-                value={customer}
-                onChange={(e) => setCustomer(e.target.value)}
-                placeholder="Walk-in customer"
-              />
-            </div>
+            {cart.items.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setCustomerOpen(true)}
+                className="w-full text-left rounded-lg border p-3 hover:bg-muted/40 transition-smooth"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <UserRound className="h-4 w-4 text-primary" />
+                    {hasCustomer ? cart.customer.name || "Customer details" : "Add customer details"}
+                  </div>
+                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                {hasCustomer && cart.customer.phone && (
+                  <div className="text-xs text-muted-foreground mt-1 ml-6">
+                    {cart.customer.phone}
+                  </div>
+                )}
+              </button>
+            )}
 
             <div className="border-t pt-3 space-y-1.5 text-sm">
               <Row label="Subtotal" value={formatMoney(cart.subtotal)} />
@@ -227,6 +245,8 @@ function SellPage() {
           </CardContent>
         </Card>
       </div>
+
+      <CustomerDetailsDialog open={customerOpen} onOpenChange={setCustomerOpen} />
     </div>
   );
 }

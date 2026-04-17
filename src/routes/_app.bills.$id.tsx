@@ -68,6 +68,14 @@ function BillDetailPage() {
           <div>
             <div className="text-xs text-muted-foreground uppercase tracking-wide">Billed to</div>
             <div className="font-medium mt-1">{bill.customerName ?? "Walk-in customer"}</div>
+            {bill.customerPhone && (
+              <div className="text-xs text-muted-foreground mt-0.5">{bill.customerPhone}</div>
+            )}
+            {bill.customerNotes && (
+              <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
+                {bill.customerNotes}
+              </div>
+            )}
           </div>
           <div className="text-right">
             <div className="text-xs text-muted-foreground uppercase tracking-wide">Cashier</div>

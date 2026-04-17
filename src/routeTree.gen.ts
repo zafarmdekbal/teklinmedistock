@@ -12,7 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppSellRouteImport } from './routes/_app.sell'
 import { Route as AppInventoryRouteImport } from './routes/_app.inventory'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
@@ -33,10 +33,10 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSellRoute = AppSellRouteImport.update({
   id: '/sell',
@@ -65,7 +65,7 @@ const AppBillsIdRoute = AppBillsIdRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/bills': typeof AppBillsRouteWithChildren
@@ -75,18 +75,17 @@ export interface FileRoutesByFullPath {
   '/bills/$id': typeof AppBillsIdRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/bills': typeof AppBillsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/inventory': typeof AppInventoryRoute
   '/sell': typeof AppSellRoute
+  '/': typeof AppIndexRoute
   '/bills/$id': typeof AppBillsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
@@ -94,6 +93,7 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/inventory': typeof AppInventoryRoute
   '/_app/sell': typeof AppSellRoute
+  '/_app/': typeof AppIndexRoute
   '/_app/bills/$id': typeof AppBillsIdRoute
 }
 export interface FileRouteTypes {
@@ -109,17 +109,16 @@ export interface FileRouteTypes {
     | '/bills/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/login'
     | '/signup'
     | '/bills'
     | '/dashboard'
     | '/inventory'
     | '/sell'
+    | '/'
     | '/bills/$id'
   id:
     | '__root__'
-    | '/'
     | '/_app'
     | '/login'
     | '/signup'
@@ -127,11 +126,11 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/inventory'
     | '/_app/sell'
+    | '/_app/'
     | '/_app/bills/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
@@ -160,12 +159,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/sell': {
       id: '/_app/sell'
@@ -222,6 +221,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppInventoryRoute: typeof AppInventoryRoute
   AppSellRoute: typeof AppSellRoute
+  AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -229,12 +229,12 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppInventoryRoute: AppInventoryRoute,
   AppSellRoute: AppSellRoute,
+  AppIndexRoute: AppIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,

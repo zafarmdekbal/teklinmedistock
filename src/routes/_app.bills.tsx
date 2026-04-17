@@ -52,15 +52,21 @@ function BillsPage() {
 
   const setRange = (r: FilterRange) => {
     navigate({
-      search: (prev) => ({ ...prev, range: r === "all" ? undefined : r }),
+      search: (prev: BillsSearch) => ({ ...prev, range: r === "all" ? undefined : r }),
       replace: true,
     });
   };
 
   const setFrom = (v: string) =>
-    navigate({ search: (prev) => ({ ...prev, range: "custom", from: v || undefined }), replace: true });
+    navigate({
+      search: (prev: BillsSearch) => ({ ...prev, range: "custom", from: v || undefined }),
+      replace: true,
+    });
   const setTo = (v: string) =>
-    navigate({ search: (prev) => ({ ...prev, range: "custom", to: v || undefined }), replace: true });
+    navigate({
+      search: (prev: BillsSearch) => ({ ...prev, range: "custom", to: v || undefined }),
+      replace: true,
+    });
 
   const filtered = useMemo(() => {
     const now = new Date();

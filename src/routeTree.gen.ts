@@ -9,38 +9,157 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppSellRouteImport } from './routes/_app.sell'
+import { Route as AppInventoryRouteImport } from './routes/_app.inventory'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppBillsRouteImport } from './routes/_app.bills'
+import { Route as AppBillsIdRouteImport } from './routes/_app.bills.$id'
 
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppSellRoute = AppSellRouteImport.update({
+  id: '/sell',
+  path: '/sell',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInventoryRoute = AppInventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBillsRoute = AppBillsRouteImport.update({
+  id: '/bills',
+  path: '/bills',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBillsIdRoute = AppBillsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppBillsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/bills': typeof AppBillsRouteWithChildren
+  '/dashboard': typeof AppDashboardRoute
+  '/inventory': typeof AppInventoryRoute
+  '/sell': typeof AppSellRoute
+  '/bills/$id': typeof AppBillsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/bills': typeof AppBillsRouteWithChildren
+  '/dashboard': typeof AppDashboardRoute
+  '/inventory': typeof AppInventoryRoute
+  '/sell': typeof AppSellRoute
+  '/bills/$id': typeof AppBillsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/_app/bills': typeof AppBillsRouteWithChildren
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/inventory': typeof AppInventoryRoute
+  '/_app/sell': typeof AppSellRoute
+  '/_app/bills/$id': typeof AppBillsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/signup'
+    | '/bills'
+    | '/dashboard'
+    | '/inventory'
+    | '/sell'
+    | '/bills/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/signup'
+    | '/bills'
+    | '/dashboard'
+    | '/inventory'
+    | '/sell'
+    | '/bills/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/signup'
+    | '/_app/bills'
+    | '/_app/dashboard'
+    | '/_app/inventory'
+    | '/_app/sell'
+    | '/_app/bills/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +167,77 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/sell': {
+      id: '/_app/sell'
+      path: '/sell'
+      fullPath: '/sell'
+      preLoaderRoute: typeof AppSellRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/inventory': {
+      id: '/_app/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof AppInventoryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bills': {
+      id: '/_app/bills'
+      path: '/bills'
+      fullPath: '/bills'
+      preLoaderRoute: typeof AppBillsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bills/$id': {
+      id: '/_app/bills/$id'
+      path: '/$id'
+      fullPath: '/bills/$id'
+      preLoaderRoute: typeof AppBillsIdRouteImport
+      parentRoute: typeof AppBillsRoute
+    }
   }
 }
 
+interface AppBillsRouteChildren {
+  AppBillsIdRoute: typeof AppBillsIdRoute
+}
+
+const AppBillsRouteChildren: AppBillsRouteChildren = {
+  AppBillsIdRoute: AppBillsIdRoute,
+}
+
+const AppBillsRouteWithChildren = AppBillsRoute._addFileChildren(
+  AppBillsRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppBillsRoute: typeof AppBillsRouteWithChildren
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppInventoryRoute: typeof AppInventoryRoute
+  AppSellRoute: typeof AppSellRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppBillsRoute: AppBillsRouteWithChildren,
+  AppDashboardRoute: AppDashboardRoute,
+  AppInventoryRoute: AppInventoryRoute,
+  AppSellRoute: AppSellRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -179,7 +179,7 @@ function InventoryPage() {
           </p>
           {search.filter && (
             <div className="mt-3 inline-flex items-center gap-2 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full">
-              Filtered: {filterLabel[search.filter]}
+              Filtered: {filterLabel[search.filter as NonNullable<InventorySearch["filter"]>]}
               <button
                 onClick={() => navigate({ search: {}, replace: true })}
                 className="hover:underline font-medium"

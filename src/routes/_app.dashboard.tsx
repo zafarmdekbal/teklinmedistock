@@ -23,18 +23,28 @@ function DashboardPage() {
   }, []);
 
   const totalSales = bills.reduce((s, b) => s + b.total, 0);
+  const stockValue = products.reduce((s, p) => s + p.price * p.stock, 0);
   const lowStock = products.filter((p) => p.stock <= 10);
-  const expiringSoon = products.filter((p) => {
-    const d = new Date(p.expiry).getTime();
-    const days = (d - Date.now()) / (1000 * 60 * 60 * 24);
-    return days <= 60 && days >= 0;
-  });
+  const expiringSoon = products
+    .filter((p) => {
+      const d = new Date(p.expiry).getTime();
+      const days = (d - Date.now()) / (1000 * 60 * 60 * 24);
+      return days <= 60 && days >= 0;
+    })
+    .sort((a, b) => new Date(a.expiry).getTime() - new Date(b.expiry).getTime());
+  const expired = products.filter((p) => new Date(p.expiry).getTime() < Date.now());
 
   const stats = [
     {
       label: "Products",
       value: products.length,
       icon: Package,
+      tint: "bg-primary/10 text-primary",
+    },
+    {
+      label: "Stock value",
+      value: formatMoney(stockValue),
+      icon: IndianRupee,
       tint: "bg-primary/10 text-primary",
     },
     {
@@ -54,6 +64,12 @@ function DashboardPage() {
       value: lowStock.length,
       icon: AlertTriangle,
       tint: "bg-warning/20 text-warning-foreground",
+    },
+    {
+      label: "Expiring soon",
+      value: expiringSoon.length,
+      icon: AlertTriangle,
+      tint: "bg-destructive/10 text-destructive",
     },
   ];
 

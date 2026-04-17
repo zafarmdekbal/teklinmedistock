@@ -34,42 +34,57 @@ function DashboardPage() {
     .sort((a, b) => new Date(a.expiry).getTime() - new Date(b.expiry).getTime());
   const expired = products.filter((p) => new Date(p.expiry).getTime() < Date.now());
 
-  const stats = [
+  const stats: Array<{
+    label: string;
+    value: string | number;
+    icon: typeof Package;
+    tint: string;
+    to: string;
+    search?: Record<string, string | number>;
+  }> = [
     {
       label: "Products",
       value: products.length,
       icon: Package,
       tint: "bg-primary/10 text-primary",
+      to: "/inventory",
     },
     {
       label: "Stock value",
       value: formatMoney(stockValue),
       icon: IndianRupee,
       tint: "bg-primary/10 text-primary",
+      to: "/inventory",
     },
     {
       label: "Bills generated",
       value: bills.length,
       icon: ReceiptText,
       tint: "bg-accent text-accent-foreground",
+      to: "/bills",
     },
     {
       label: "Total revenue",
       value: formatMoney(totalSales),
       icon: IndianRupee,
       tint: "bg-success/15 text-success",
+      to: "/revenue",
     },
     {
       label: "Low stock",
       value: lowStock.length,
       icon: AlertTriangle,
       tint: "bg-warning/20 text-warning-foreground",
+      to: "/inventory",
+      search: { filter: "low" },
     },
     {
       label: "Expiring soon",
       value: expiringSoon.length,
       icon: AlertTriangle,
       tint: "bg-destructive/10 text-destructive",
+      to: "/inventory",
+      search: { filter: "expiring" },
     },
   ];
 
@@ -96,19 +111,25 @@ function DashboardPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {stats.map((s, i) => (
-          <Card
+          <Link
             key={s.label}
-            className="shadow-soft border-border/60 animate-fade-in"
-            style={{ animationDelay: `${i * 60}ms` }}
+            to={s.to}
+            search={s.search ?? {}}
+            className="block group"
           >
-            <CardContent className="p-5">
-              <div className={`inline-flex h-10 w-10 rounded-xl items-center justify-center ${s.tint}`}>
-                <s.icon className="h-5 w-5" />
-              </div>
-              <div className="mt-4 text-2xl font-semibold">{s.value}</div>
-              <div className="text-xs text-muted-foreground mt-1">{s.label}</div>
-            </CardContent>
-          </Card>
+            <Card
+              className="shadow-soft border-border/60 animate-fade-in transition-smooth hover:shadow-md hover:-translate-y-0.5 hover:border-primary/40 cursor-pointer h-full"
+              style={{ animationDelay: `${i * 60}ms` }}
+            >
+              <CardContent className="p-5">
+                <div className={`inline-flex h-10 w-10 rounded-xl items-center justify-center ${s.tint}`}>
+                  <s.icon className="h-5 w-5" />
+                </div>
+                <div className="mt-4 text-2xl font-semibold">{s.value}</div>
+                <div className="text-xs text-muted-foreground mt-1 group-hover:text-foreground transition-smooth">{s.label}</div>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 

@@ -1,29 +1,27 @@
-import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useEffect, useState, type FormEvent } from "react";
 import { Pill } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
-import { authStore } from "@/lib/storage";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/signup")({
-  beforeLoad: () => {
-    if (typeof window !== "undefined" && authStore.session()) {
-      throw redirect({ to: "/dashboard" });
-    }
-  },
   component: SignupPage,
 });
 
 function SignupPage() {
-  const { signup } = useAuth();
+  const { signup, session, ready } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (ready && session) navigate({ to: "/dashboard" });
+  }, [ready, session, navigate]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -34,7 +32,7 @@ function SignupPage() {
     setLoading(true);
     try {
       await signup(name, email, password);
-      toast.success("Account created");
+      toast.success("Account created — you're signed in");
       navigate({ to: "/dashboard" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Signup failed");
@@ -95,10 +93,6 @@ function SignupPage() {
           <Link to="/login" className="text-primary font-medium hover:underline">
             Sign in
           </Link>
-        </p>
-
-        <p className="text-[11px] text-center text-muted-foreground">
-          Demo auth — credentials are stored locally in your browser.
         </p>
       </form>
     </div>

@@ -1,28 +1,26 @@
-import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useEffect, useState, type FormEvent } from "react";
 import { Pill } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
-import { authStore } from "@/lib/storage";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
-  beforeLoad: () => {
-    if (typeof window !== "undefined" && authStore.session()) {
-      throw redirect({ to: "/dashboard" });
-    }
-  },
   component: LoginPage,
 });
 
 function LoginPage() {
-  const { login } = useAuth();
+  const { login, session, ready } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (ready && session) navigate({ to: "/dashboard" });
+  }, [ready, session, navigate]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -91,7 +89,15 @@ function LoginPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <Link
+                to="/forgot-password"
+                className="text-xs text-primary font-medium hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <Input
               id="password"
               type="password"

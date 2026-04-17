@@ -1,43 +1,85 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { authStore, type Session } from "./storage";
+import { supabase } from "@/integrations/supabase/client";
+import type { Session as SbSession, User as SbUser } from "@supabase/supabase-js";
+
+export type Session = { userId: string; name: string; email: string };
 
 type AuthCtx = {
   session: Session | null;
   ready: boolean;
-  login: (email: string, password: string) => Promise<Session>;
-  signup: (name: string, email: string, password: string) => Promise<Session>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
 
+function toSession(sb: SbSession | null): Session | null {
+  if (!sb?.user) return null;
+  return userToSession(sb.user);
+}
+
+function userToSession(u: SbUser): Session {
+  const meta = (u.user_metadata ?? {}) as { name?: string; full_name?: string };
+  return {
+    userId: u.id,
+    email: u.email ?? "",
+    name: meta.name || meta.full_name || (u.email?.split("@")[0] ?? "User"),
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(() =>
-    typeof window === "undefined" ? null : authStore.session(),
-  );
-  const [ready, setReady] = useState(typeof window !== "undefined");
+  const [session, setSession] = useState<Session | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setSession(authStore.session());
-    setReady(true);
+    // Listener FIRST, then fetch existing session.
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, sb) => {
+      setSession(toSession(sb));
+    });
+
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(toSession(data.session));
+      setReady(true);
+    });
+
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   const value: AuthCtx = {
     session,
     ready,
     login: async (email, password) => {
-      const s = authStore.login(email, password);
-      setSession(s);
-      return s;
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw new Error(error.message);
     },
     signup: async (name, email, password) => {
-      const s = authStore.signup(name, email, password);
-      setSession(s);
-      return s;
+      const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name },
+          emailRedirectTo: redirectTo,
+        },
+      });
+      if (error) throw new Error(error.message);
     },
-    logout: () => {
-      authStore.logout();
+    logout: async () => {
+      await supabase.auth.signOut();
       setSession(null);
+    },
+    requestPasswordReset: async (email) => {
+      const redirectTo =
+        typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) throw new Error(error.message);
+    },
+    updatePassword: async (newPassword) => {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw new Error(error.message);
     },
   };
 

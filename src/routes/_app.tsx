@@ -13,9 +13,6 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppLayout() {
-  const { session, ready } = useAuth();
-  if (!ready) return null;
-  if (!session) return null;
   return (
     <AppShell>
       <Outlet />

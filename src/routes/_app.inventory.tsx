@@ -67,8 +67,20 @@ function InventoryPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(empty);
 
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+
   const refresh = () => setItems(productsStore.list());
   useEffect(refresh, []);
+
+  useEffect(() => {
+    if (search.add) {
+      setEditing(null);
+      setForm(empty);
+      setOpen(true);
+      navigate({ search: {}, replace: true });
+    }
+  }, [search.add, navigate]);
 
   const filtered = items.filter(
     (p) =>

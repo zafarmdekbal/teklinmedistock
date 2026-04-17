@@ -12,8 +12,10 @@ type AuthCtx = {
 const Ctx = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [ready, setReady] = useState(false);
+  const [session, setSession] = useState<Session | null>(() =>
+    typeof window === "undefined" ? null : authStore.session(),
+  );
+  const [ready, setReady] = useState(typeof window !== "undefined");
 
   useEffect(() => {
     setSession(authStore.session());

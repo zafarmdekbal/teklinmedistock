@@ -163,6 +163,12 @@ function InventoryPage() {
     toast.success("Product removed");
   };
 
+  const filterLabel: Record<NonNullable<InventorySearch["filter"]>, string> = {
+    low: "Low stock (≤ 10)",
+    expiring: "Expiring within 60 days",
+    expired: "Expired products",
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -171,6 +177,17 @@ function InventoryPage() {
           <p className="text-sm text-muted-foreground mt-1">
             Manage your products, stock and expiry.
           </p>
+          {search.filter && (
+            <div className="mt-3 inline-flex items-center gap-2 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full">
+              Filtered: {filterLabel[search.filter]}
+              <button
+                onClick={() => navigate({ search: {}, replace: true })}
+                className="hover:underline font-medium"
+              >
+                Clear
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           <div className="relative flex-1 md:w-72">

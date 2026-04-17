@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  ShoppingBag,
   ReceiptText,
   LogOut,
   Pill,

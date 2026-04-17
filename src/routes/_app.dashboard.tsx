@@ -68,7 +68,7 @@ function DashboardPage() {
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link to="/inventory">Add product</Link>
+            <Link to="/inventory" search={{ add: 1 }}>Add product</Link>
           </Button>
           <Button asChild className="shadow-soft">
             <Link to="/sell">

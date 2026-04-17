@@ -141,17 +141,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Desktop: resizable two-pane */}
       <div className="hidden md:block h-full">
-        <ResizablePanelGroup
-          orientation="horizontal"
-          storage={typeof window !== "undefined" ? window.localStorage : undefined}
-          id="medistock-shell"
-          className="h-full"
-        >
+        <ResizablePanelGroup orientation="horizontal" id="medistock-shell" className="h-full">
           <ResizablePanel
             id="sidebar"
-            defaultSize={{ value: 256, unit: "px" }}
-            minSize={{ value: 180, unit: "px" }}
-            maxSize={{ value: 480, unit: "px" }}
+            defaultSize="256px"
+            minSize="180px"
+            maxSize="480px"
             className="h-full"
           >
             {sidebar}

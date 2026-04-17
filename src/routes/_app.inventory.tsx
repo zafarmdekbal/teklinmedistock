@@ -1,0 +1,345 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState, type FormEvent } from "react";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { productsStore, type Product } from "@/lib/storage";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/_app/inventory")({
+  component: InventoryPage,
+});
+
+type FormState = {
+  name: string;
+  category: string;
+  price: string;
+  stock: string;
+  expiry: string;
+  batch: string;
+  manufacturer: string;
+  sku: string;
+  taxPercent: string;
+  prescription: boolean;
+};
+
+const empty: FormState = {
+  name: "",
+  category: "",
+  price: "",
+  stock: "",
+  expiry: "",
+  batch: "",
+  manufacturer: "",
+  sku: "",
+  taxPercent: "12",
+  prescription: false,
+};
+
+function InventoryPage() {
+  const [items, setItems] = useState<Product[]>([]);
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Product | null>(null);
+  const [form, setForm] = useState<FormState>(empty);
+
+  const refresh = () => setItems(productsStore.list());
+  useEffect(refresh, []);
+
+  const filtered = items.filter(
+    (p) =>
+      p.name.toLowerCase().includes(query.toLowerCase()) ||
+      p.category.toLowerCase().includes(query.toLowerCase()) ||
+      (p.sku ?? "").toLowerCase().includes(query.toLowerCase()),
+  );
+
+  const startAdd = () => {
+    setEditing(null);
+    setForm(empty);
+    setOpen(true);
+  };
+
+  const startEdit = (p: Product) => {
+    setEditing(p);
+    setForm({
+      name: p.name,
+      category: p.category,
+      price: String(p.price),
+      stock: String(p.stock),
+      expiry: p.expiry.slice(0, 10),
+      batch: p.batch ?? "",
+      manufacturer: p.manufacturer ?? "",
+      sku: p.sku ?? "",
+      taxPercent: String(p.taxPercent ?? 0),
+      prescription: !!p.prescription,
+    });
+    setOpen(true);
+  };
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const payload = {
+      name: form.name.trim(),
+      category: form.category.trim() || "General",
+      price: Number(form.price),
+      stock: Number(form.stock),
+      expiry: form.expiry,
+      batch: form.batch.trim() || undefined,
+      manufacturer: form.manufacturer.trim() || undefined,
+      sku: form.sku.trim() || undefined,
+      taxPercent: Number(form.taxPercent) || 0,
+      prescription: form.prescription,
+    };
+    if (!payload.name || !payload.expiry || isNaN(payload.price) || isNaN(payload.stock)) {
+      toast.error("Please fill name, price, stock and expiry.");
+      return;
+    }
+    if (editing) {
+      productsStore.update(editing.id, payload);
+      toast.success("Product updated");
+    } else {
+      productsStore.add(payload);
+      toast.success("Product added");
+    }
+    refresh();
+    setOpen(false);
+  };
+
+  const remove = (p: Product) => {
+    if (!confirm(`Delete ${p.name}?`)) return;
+    productsStore.remove(p.id);
+    refresh();
+    toast.success("Product removed");
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Inventory</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage your products, stock and expiry.
+          </p>
+        </div>
+        <div className="flex gap-2 w-full md:w-auto">
+          <div className="relative flex-1 md:w-72">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search products…"
+              className="pl-9"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={startAdd} className="shadow-soft">
+                <Plus className="h-4 w-4" /> Add product
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>{editing ? "Edit product" : "Add product"}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={submit} className="grid grid-cols-2 gap-4">
+                <Field label="Name" className="col-span-2">
+                  <Input
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    required
+                  />
+                </Field>
+                <Field label="Category">
+                  <Input
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    placeholder="e.g. Antibiotic"
+                  />
+                </Field>
+                <Field label="Manufacturer">
+                  <Input
+                    value={form.manufacturer}
+                    onChange={(e) => setForm({ ...form, manufacturer: e.target.value })}
+                  />
+                </Field>
+                <Field label="Price">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                    required
+                  />
+                </Field>
+                <Field label="Stock">
+                  <Input
+                    type="number"
+                    value={form.stock}
+                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                    required
+                  />
+                </Field>
+                <Field label="Expiry">
+                  <Input
+                    type="date"
+                    value={form.expiry}
+                    onChange={(e) => setForm({ ...form, expiry: e.target.value })}
+                    required
+                  />
+                </Field>
+                <Field label="Tax %">
+                  <Input
+                    type="number"
+                    value={form.taxPercent}
+                    onChange={(e) => setForm({ ...form, taxPercent: e.target.value })}
+                  />
+                </Field>
+                <Field label="Batch">
+                  <Input
+                    value={form.batch}
+                    onChange={(e) => setForm({ ...form, batch: e.target.value })}
+                  />
+                </Field>
+                <Field label="SKU">
+                  <Input
+                    value={form.sku}
+                    onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                  />
+                </Field>
+                <div className="col-span-2 flex items-center justify-between rounded-lg border p-3">
+                  <div>
+                    <div className="text-sm font-medium">Prescription required</div>
+                    <div className="text-xs text-muted-foreground">
+                      Mark this product as Rx-only.
+                    </div>
+                  </div>
+                  <Switch
+                    checked={form.prescription}
+                    onCheckedChange={(v) => setForm({ ...form, prescription: v })}
+                  />
+                </div>
+                <DialogFooter className="col-span-2">
+                  <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="shadow-soft">
+                    {editing ? "Save changes" : "Add product"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      <Card className="shadow-soft overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead className="text-right">Price</TableHead>
+              <TableHead className="text-right">Stock</TableHead>
+              <TableHead>Expiry</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                  {items.length === 0
+                    ? "No products yet. Add your first one to get started."
+                    : "No products match your search."}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((p) => {
+                const lowStock = p.stock <= 10;
+                return (
+                  <TableRow key={p.id} className="animate-fade-in">
+                    <TableCell>
+                      <div className="font-medium">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {p.manufacturer ?? "—"} {p.batch ? `· Batch ${p.batch}` : ""}
+                        {p.prescription ? " · Rx" : ""}
+                      </div>
+                    </TableCell>
+                    <TableCell>{p.category}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {p.price.toFixed(2)}
+                      {p.taxPercent ? (
+                        <span className="text-xs text-muted-foreground"> +{p.taxPercent}%</span>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span
+                        className={
+                          lowStock
+                            ? "inline-block bg-warning/30 text-warning-foreground px-2 py-0.5 rounded-md text-xs"
+                            : "tabular-nums"
+                        }
+                      >
+                        {p.stock}
+                      </span>
+                    </TableCell>
+                    <TableCell>{new Date(p.expiry).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => startEdit(p)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => remove(p)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`space-y-1.5 ${className ?? ""}`}>
+      <Label className="text-xs">{label}</Label>
+      {children}
+    </div>
+  );
+}

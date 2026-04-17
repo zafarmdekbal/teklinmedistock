@@ -156,7 +156,7 @@ function RevenuePage() {
                   borderRadius: 8,
                   fontSize: 12,
                 }}
-                formatter={(v: number) => formatMoney(v)}
+                formatter={(v) => formatMoney(Number(v))}
               />
               <Line
                 type="monotone"
@@ -188,7 +188,7 @@ function RevenuePage() {
                     borderRadius: 8,
                     fontSize: 12,
                   }}
-                  formatter={(v: number) => formatMoney(v)}
+                  formatter={(v) => formatMoney(Number(v))}
                 />
                 <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
               </BarChart>
@@ -227,7 +227,7 @@ function RevenuePage() {
                       borderRadius: 8,
                       fontSize: 12,
                     }}
-                    formatter={(v: number) => formatMoney(v)}
+                    formatter={(v) => formatMoney(Number(v))}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                 </PieChart>

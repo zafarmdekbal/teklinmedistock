@@ -25,12 +25,17 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
-type InventorySearch = { add?: number };
+type InventorySearch = { add?: number; filter?: "low" | "expiring" | "expired" };
 
 export const Route = createFileRoute("/_app/inventory")({
-  validateSearch: (search: Record<string, unknown>): InventorySearch => ({
-    add: search.add ? Number(search.add) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): InventorySearch => {
+    const f = search.filter as string | undefined;
+    const valid = ["low", "expiring", "expired"];
+    return {
+      add: search.add ? Number(search.add) : undefined,
+      filter: valid.includes(f as string) ? (f as InventorySearch["filter"]) : undefined,
+    };
+  },
   component: InventoryPage,
 });
 
@@ -82,12 +87,22 @@ function InventoryPage() {
     }
   }, [search.add, navigate]);
 
-  const filtered = items.filter(
-    (p) =>
-      p.name.toLowerCase().includes(query.toLowerCase()) ||
-      p.category.toLowerCase().includes(query.toLowerCase()) ||
-      (p.sku ?? "").toLowerCase().includes(query.toLowerCase()),
-  );
+  const filtered = items.filter((p) => {
+    const q = query.toLowerCase();
+    const matchesQuery =
+      !q ||
+      p.name.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q) ||
+      (p.sku ?? "").toLowerCase().includes(q);
+    if (!matchesQuery) return false;
+    if (search.filter === "low") return p.stock <= 10;
+    if (search.filter === "expired") return new Date(p.expiry).getTime() < Date.now();
+    if (search.filter === "expiring") {
+      const days = (new Date(p.expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+      return days >= 0 && days <= 60;
+    }
+    return true;
+  });
 
   const startAdd = () => {
     setEditing(null);
@@ -148,6 +163,12 @@ function InventoryPage() {
     toast.success("Product removed");
   };
 
+  const filterLabel: Record<NonNullable<InventorySearch["filter"]>, string> = {
+    low: "Low stock (≤ 10)",
+    expiring: "Expiring within 60 days",
+    expired: "Expired products",
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -156,6 +177,17 @@ function InventoryPage() {
           <p className="text-sm text-muted-foreground mt-1">
             Manage your products, stock and expiry.
           </p>
+          {search.filter && (
+            <div className="mt-3 inline-flex items-center gap-2 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full">
+              Filtered: {filterLabel[search.filter as NonNullable<InventorySearch["filter"]>]}
+              <button
+                onClick={() => navigate({ search: {}, replace: true })}
+                className="hover:underline font-medium"
+              >
+                Clear
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           <div className="relative flex-1 md:w-72">

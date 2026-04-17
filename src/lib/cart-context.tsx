@@ -3,9 +3,13 @@ import type { Product } from "./storage";
 
 export type CartItem = { product: Product; qty: number };
 
+export type Customer = { name: string; phone: string; notes: string };
+
+const emptyCustomer: Customer = { name: "", phone: "", notes: "" };
+
 type CartCtx = {
   items: CartItem[];
-  add: (product: Product, qty?: number) => void;
+  add: (product: Product, qty?: number) => { isFirst: boolean };
   remove: (productId: string) => void;
   setQty: (productId: string, qty: number) => void;
   clear: () => void;
@@ -13,14 +17,21 @@ type CartCtx = {
   tax: number;
   total: number;
   count: number;
+  customer: Customer;
+  setCustomer: (c: Customer) => void;
+  customerSubmitted: boolean;
+  setCustomerSubmitted: (v: boolean) => void;
 };
 
 const Ctx = createContext<CartCtx | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [customer, setCustomer] = useState<Customer>(emptyCustomer);
+  const [customerSubmitted, setCustomerSubmitted] = useState(false);
 
   const add: CartCtx["add"] = (product, qty = 1) => {
+    const isFirst = items.length === 0;
     setItems((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
@@ -32,6 +43,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, { product, qty: Math.min(product.stock, qty) }];
     });
+    return { isFirst };
   };
 
   const remove: CartCtx["remove"] = (id) =>
@@ -44,7 +56,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ),
     );
 
-  const clear = () => setItems([]);
+  const clear = () => {
+    setItems([]);
+    setCustomer(emptyCustomer);
+    setCustomerSubmitted(false);
+  };
 
   const subtotal = items.reduce((s, i) => s + i.product.price * i.qty, 0);
   const tax = items.reduce(
@@ -55,7 +71,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const count = items.reduce((s, i) => s + i.qty, 0);
 
   return (
-    <Ctx.Provider value={{ items, add, remove, setQty, clear, subtotal, tax, total, count }}>
+    <Ctx.Provider
+      value={{
+        items,
+        add,
+        remove,
+        setQty,
+        clear,
+        subtotal,
+        tax,
+        total,
+        count,
+        customer,
+        setCustomer,
+        customerSubmitted,
+        setCustomerSubmitted,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

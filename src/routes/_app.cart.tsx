@@ -34,6 +34,7 @@ function CartPage() {
         productId: i.product.id,
         name: i.product.name,
         price: i.product.price,
+        costPrice: i.product.costPrice,
         qty: i.qty,
         taxPercent: i.product.taxPercent ?? 0,
       })),

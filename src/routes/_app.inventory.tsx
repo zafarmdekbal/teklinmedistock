@@ -25,7 +25,11 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
-type InventorySearch = { add?: number; filter?: "low" | "expiring" | "expired" };
+type InventorySearch = {
+  add?: number;
+  filter?: "low" | "expiring" | "expired";
+  q?: string;
+};
 
 export const Route = createFileRoute("/_app/inventory")({
   validateSearch: (search: Record<string, unknown>): InventorySearch => {
@@ -34,6 +38,7 @@ export const Route = createFileRoute("/_app/inventory")({
     return {
       add: search.add ? Number(search.add) : undefined,
       filter: valid.includes(f as string) ? (f as InventorySearch["filter"]) : undefined,
+      q: typeof search.q === "string" ? search.q : undefined,
     };
   },
   component: InventoryPage,
@@ -68,8 +73,13 @@ const empty: FormState = {
 };
 
 function InventoryPage() {
+  const { q: qParam } = Route.useSearch();
   const [items, setItems] = useState<Product[]>([]);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(qParam ?? "");
+
+  useEffect(() => {
+    if (typeof qParam === "string") setQuery(qParam);
+  }, [qParam]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(empty);

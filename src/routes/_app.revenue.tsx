@@ -265,7 +265,7 @@ function RevenuePage() {
                   value={search.to ?? ""}
                   onChange={(e) =>
                     navigate({
-                      search: (prev) => ({ ...prev, range: "custom", to: e.target.value }),
+                      search: (prev: RevenueSearch) => ({ ...prev, range: "custom", to: e.target.value }),
                       replace: true,
                     })
                   }

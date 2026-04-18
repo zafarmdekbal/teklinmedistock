@@ -20,6 +20,7 @@ export type BillItem = {
   productId: string;
   name: string;
   price: number;
+  costPrice?: number;
   qty: number;
   taxPercent: number;
 };

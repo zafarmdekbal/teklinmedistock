@@ -42,6 +42,7 @@ export const Route = createFileRoute("/_app/inventory")({
 type FormState = {
   name: string;
   category: string;
+  costPrice: string;
   price: string;
   stock: string;
   expiry: string;
@@ -55,6 +56,7 @@ type FormState = {
 const empty: FormState = {
   name: "",
   category: "",
+  costPrice: "",
   price: "",
   stock: "",
   expiry: "",
@@ -115,6 +117,7 @@ function InventoryPage() {
     setForm({
       name: p.name,
       category: p.category,
+      costPrice: p.costPrice != null ? String(p.costPrice) : "",
       price: String(p.price),
       stock: String(p.stock),
       expiry: p.expiry.slice(0, 10),
@@ -132,6 +135,7 @@ function InventoryPage() {
     const payload = {
       name: form.name.trim(),
       category: form.category.trim() || "General",
+      costPrice: form.costPrice === "" ? undefined : Number(form.costPrice),
       price: Number(form.price),
       stock: Number(form.stock),
       expiry: form.expiry,
@@ -230,7 +234,16 @@ function InventoryPage() {
                     onChange={(e) => setForm({ ...form, manufacturer: e.target.value })}
                   />
                 </Field>
-                <Field label="Price">
+                <Field label="Buying price">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.costPrice}
+                    onChange={(e) => setForm({ ...form, costPrice: e.target.value })}
+                    placeholder="Cost per unit"
+                  />
+                </Field>
+                <Field label="Selling price">
                   <Input
                     type="number"
                     step="0.01"

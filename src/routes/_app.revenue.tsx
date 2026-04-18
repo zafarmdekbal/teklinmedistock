@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, IndianRupee, ReceiptText, TrendingUp } from "lucide-react";
+import { ArrowLeft, IndianRupee, ReceiptText, TrendingUp, Wallet } from "lucide-react";
 import { billsStore, type Bill } from "@/lib/storage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ResponsiveContainer,
   LineChart,
@@ -20,7 +23,19 @@ import {
   Legend,
 } from "recharts";
 
+type Range = "7d" | "30d" | "quarter" | "year" | "custom" | "all";
+type RevenueSearch = { range?: Range; from?: string; to?: string };
+
 export const Route = createFileRoute("/_app/revenue")({
+  validateSearch: (search: Record<string, unknown>): RevenueSearch => {
+    const valid: Range[] = ["7d", "30d", "quarter", "year", "custom", "all"];
+    const r = search.range as string | undefined;
+    return {
+      range: valid.includes(r as Range) ? (r as Range) : undefined,
+      from: typeof search.from === "string" ? search.from : undefined,
+      to: typeof search.to === "string" ? search.to : undefined,
+    };
+  },
   component: RevenuePage,
 });
 
@@ -28,28 +43,89 @@ function formatMoney(n: number) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "INR" }).format(n);
 }
 
+function rangeBounds(range: Range, from?: string, to?: string): { start: Date; end: Date } {
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  switch (range) {
+    case "7d":
+      start.setDate(start.getDate() - 6);
+      break;
+    case "30d":
+      start.setDate(start.getDate() - 29);
+      break;
+    case "quarter":
+      start.setDate(start.getDate() - 89);
+      break;
+    case "year":
+      start.setDate(start.getDate() - 364);
+      break;
+    case "custom": {
+      const s = from ? new Date(from) : new Date(0);
+      const e = to ? new Date(to) : new Date();
+      s.setHours(0, 0, 0, 0);
+      e.setHours(23, 59, 59, 999);
+      return { start: s, end: e };
+    }
+    case "all":
+    default:
+      return { start: new Date(0), end };
+  }
+  return { start, end };
+}
+
 function RevenuePage() {
   const [bills, setBills] = useState<Bill[]>([]);
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+
+  const range: Range = search.range ?? "30d";
 
   useEffect(() => {
     setBills(billsStore.list());
   }, []);
 
-  const stats = useMemo(() => {
-    const totalRevenue = bills.reduce((s, b) => s + b.total, 0);
-    const totalTax = bills.reduce((s, b) => s + b.tax, 0);
-    const avgBill = bills.length ? totalRevenue / bills.length : 0;
-    return { totalRevenue, totalTax, avgBill };
-  }, [bills]);
+  const { start, end } = useMemo(
+    () => rangeBounds(range, search.from, search.to),
+    [range, search.from, search.to],
+  );
 
-  // Daily revenue (last 30 days)
+  const filteredBills = useMemo(
+    () =>
+      bills.filter((b) => {
+        const t = new Date(b.createdAt).getTime();
+        return t >= start.getTime() && t <= end.getTime();
+      }),
+    [bills, start, end],
+  );
+
+  const stats = useMemo(() => {
+    const totalRevenue = filteredBills.reduce((s, b) => s + b.total, 0);
+    const totalTax = filteredBills.reduce((s, b) => s + b.tax, 0);
+    const avgBill = filteredBills.length ? totalRevenue / filteredBills.length : 0;
+    const cost = filteredBills.reduce(
+      (s, b) =>
+        s + b.items.reduce((is, it) => is + (it.costPrice ?? 0) * it.qty, 0),
+      0,
+    );
+    const profit = filteredBills.reduce((s, b) => s + b.subtotal, 0) - cost;
+    return { totalRevenue, totalTax, avgBill, profit };
+  }, [filteredBills]);
+
+  // Daily breakdown across the range (cap at 90 buckets for perf/readability)
   const dailyData = useMemo(() => {
     const days: { date: string; label: string; revenue: number; bills: number }[] = [];
-    const now = new Date();
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
-      d.setHours(0, 0, 0, 0);
+    const dayMs = 1000 * 60 * 60 * 24;
+    const totalDays = Math.min(
+      90,
+      Math.max(1, Math.ceil((end.getTime() - start.getTime()) / dayMs) + 1),
+    );
+    const base = new Date(end);
+    base.setHours(0, 0, 0, 0);
+    for (let i = totalDays - 1; i >= 0; i--) {
+      const d = new Date(base);
+      d.setDate(base.getDate() - i);
       const key = d.toISOString().slice(0, 10);
       days.push({
         date: key,
@@ -59,7 +135,7 @@ function RevenuePage() {
       });
     }
     const map = new Map(days.map((d) => [d.date, d]));
-    for (const b of bills) {
+    for (const b of filteredBills) {
       const key = new Date(b.createdAt).toISOString().slice(0, 10);
       const row = map.get(key);
       if (row) {
@@ -68,35 +144,36 @@ function RevenuePage() {
       }
     }
     return days;
-  }, [bills]);
+  }, [filteredBills, start, end]);
 
-  // Monthly revenue (last 12 months)
+  // Monthly revenue across the range (last 12 months max)
   const monthlyData = useMemo(() => {
     const months: { key: string; label: string; revenue: number }[] = [];
-    const now = new Date();
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const startMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+    const cur = new Date(startMonth);
+    while (cur.getTime() <= endMonth.getTime() && months.length < 24) {
+      const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}`;
       months.push({
         key,
-        label: d.toLocaleDateString(undefined, { month: "short", year: "2-digit" }),
+        label: cur.toLocaleDateString(undefined, { month: "short", year: "2-digit" }),
         revenue: 0,
       });
+      cur.setMonth(cur.getMonth() + 1);
     }
     const map = new Map(months.map((m) => [m.key, m]));
-    for (const b of bills) {
+    for (const b of filteredBills) {
       const d = new Date(b.createdAt);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const row = map.get(key);
       if (row) row.revenue += b.total;
     }
     return months;
-  }, [bills]);
+  }, [filteredBills, start, end]);
 
-  // Top products by revenue
   const topProducts = useMemo(() => {
     const map = new Map<string, { name: string; revenue: number; qty: number }>();
-    for (const b of bills) {
+    for (const b of filteredBills) {
       for (const it of b.items) {
         const cur = map.get(it.productId) ?? { name: it.name, revenue: 0, qty: 0 };
         cur.revenue += it.price * it.qty;
@@ -107,7 +184,7 @@ function RevenuePage() {
     return Array.from(map.values())
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
-  }, [bills]);
+  }, [filteredBills]);
 
   const PIE_COLORS = [
     "hsl(var(--primary))",
@@ -116,6 +193,26 @@ function RevenuePage() {
     "hsl(var(--warning, 38 92% 50%))",
     "hsl(var(--destructive))",
   ];
+
+  const setRange = (r: Range) => {
+    navigate({
+      search: (prev: RevenueSearch) => ({
+        ...prev,
+        range: r,
+        ...(r === "custom" ? {} : { from: undefined, to: undefined }),
+      }),
+      replace: true,
+    });
+  };
+
+  const rangeLabel: Record<Range, string> = {
+    "7d": "Last 7 days",
+    "30d": "Last 30 days",
+    quarter: "Last 90 days",
+    year: "Last 12 months",
+    custom: "Custom range",
+    all: "All time",
+  };
 
   return (
     <div className="space-y-6">
@@ -128,20 +225,67 @@ function RevenuePage() {
           </Button>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Revenue analytics</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Trends, top products and tax breakdown.
+            {rangeLabel[range]} ·{" "}
+            {start.toLocaleDateString()} – {end.toLocaleDateString()}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Card className="shadow-soft">
+        <CardContent className="p-4 space-y-4">
+          <Tabs value={range} onValueChange={(v) => setRange(v as Range)}>
+            <TabsList className="flex flex-wrap h-auto">
+              <TabsTrigger value="7d">Last 7 days</TabsTrigger>
+              <TabsTrigger value="30d">Last 30 days</TabsTrigger>
+              <TabsTrigger value="quarter">Last quarter</TabsTrigger>
+              <TabsTrigger value="year">Last year</TabsTrigger>
+              <TabsTrigger value="custom">Custom</TabsTrigger>
+              <TabsTrigger value="all">All time</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {range === "custom" && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">From</Label>
+                <Input
+                  type="date"
+                  value={search.from ?? ""}
+                  onChange={(e) =>
+                    navigate({
+                      search: (prev: RevenueSearch) => ({ ...prev, range: "custom", from: e.target.value }),
+                      replace: true,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">To</Label>
+                <Input
+                  type="date"
+                  value={search.to ?? ""}
+                  onChange={(e) =>
+                    navigate({
+                      search: (prev: RevenueSearch) => ({ ...prev, range: "custom", to: e.target.value }),
+                      replace: true,
+                    })
+                  }
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Total revenue" value={formatMoney(stats.totalRevenue)} icon={IndianRupee} />
+        <StatCard label="Estimated profit" value={formatMoney(stats.profit)} icon={Wallet} />
         <StatCard label="Tax collected" value={formatMoney(stats.totalTax)} icon={TrendingUp} />
         <StatCard label="Avg bill value" value={formatMoney(stats.avgBill)} icon={ReceiptText} />
       </div>
 
       <Card className="shadow-soft">
         <CardHeader>
-          <CardTitle className="text-base">Daily revenue · last 30 days</CardTitle>
+          <CardTitle className="text-base">Daily revenue</CardTitle>
         </CardHeader>
         <CardContent className="h-72">
           <ResponsiveContainer width="100%" height="100%">
@@ -173,7 +317,7 @@ function RevenuePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="shadow-soft">
           <CardHeader>
-            <CardTitle className="text-base">Monthly revenue · last 12 months</CardTitle>
+            <CardTitle className="text-base">Monthly revenue</CardTitle>
           </CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -203,7 +347,7 @@ function RevenuePage() {
           <CardContent className="h-72">
             {topProducts.length === 0 ? (
               <div className="h-full grid place-items-center text-sm text-muted-foreground">
-                No sales yet.
+                No sales in this range.
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">

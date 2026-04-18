@@ -135,6 +135,7 @@ function InventoryPage() {
     const payload = {
       name: form.name.trim(),
       category: form.category.trim() || "General",
+      costPrice: form.costPrice === "" ? undefined : Number(form.costPrice),
       price: Number(form.price),
       stock: Number(form.stock),
       expiry: form.expiry,

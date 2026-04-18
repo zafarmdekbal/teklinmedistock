@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
+import { GlobalSearch } from "@/components/global-search";
 import {
   ResizablePanelGroup,
   ResizablePanel,

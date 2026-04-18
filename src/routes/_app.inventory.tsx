@@ -42,6 +42,7 @@ export const Route = createFileRoute("/_app/inventory")({
 type FormState = {
   name: string;
   category: string;
+  costPrice: string;
   price: string;
   stock: string;
   expiry: string;
@@ -55,6 +56,7 @@ type FormState = {
 const empty: FormState = {
   name: "",
   category: "",
+  costPrice: "",
   price: "",
   stock: "",
   expiry: "",

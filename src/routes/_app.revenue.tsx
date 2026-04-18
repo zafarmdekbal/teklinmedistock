@@ -196,7 +196,11 @@ function RevenuePage() {
 
   const setRange = (r: Range) => {
     navigate({
-      search: (prev) => ({ ...prev, range: r, ...(r === "custom" ? {} : { from: undefined, to: undefined }) }),
+      search: (prev: RevenueSearch) => ({
+        ...prev,
+        range: r,
+        ...(r === "custom" ? {} : { from: undefined, to: undefined }),
+      }),
       replace: true,
     });
   };

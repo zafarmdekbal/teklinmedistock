@@ -234,7 +234,16 @@ function InventoryPage() {
                     onChange={(e) => setForm({ ...form, manufacturer: e.target.value })}
                   />
                 </Field>
-                <Field label="Price">
+                <Field label="Buying price">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.costPrice}
+                    onChange={(e) => setForm({ ...form, costPrice: e.target.value })}
+                    placeholder="Cost per unit"
+                  />
+                </Field>
+                <Field label="Selling price">
                   <Input
                     type="number"
                     step="0.01"

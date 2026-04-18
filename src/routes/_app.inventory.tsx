@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Pencil, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { useCart } from "@/lib/cart-context";
 import { productsStore, type Product } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +87,16 @@ function InventoryPage() {
 
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
+  const cart = useCart();
+
+  const quickAdd = (p: Product) => {
+    if (p.stock <= 0) {
+      toast.error(`${p.name} is out of stock`);
+      return;
+    }
+    cart.add(p, 1);
+    toast.success(`${p.name} added to cart`);
+  };
 
   const refresh = () => setItems(productsStore.list());
   useEffect(refresh, []);
@@ -376,7 +387,17 @@ function InventoryPage() {
                     </TableCell>
                     <TableCell>{new Date(p.expiry).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => startEdit(p)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => quickAdd(p)}
+                        disabled={p.stock <= 0}
+                        className="text-primary hover:text-primary"
+                        title="Add to cart"
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => startEdit(p)} title="Edit">
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
@@ -384,6 +405,7 @@ function InventoryPage() {
                         size="icon"
                         onClick={() => remove(p)}
                         className="text-destructive hover:text-destructive"
+                        title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

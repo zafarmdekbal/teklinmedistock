@@ -128,6 +128,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="hidden md:flex flex-1" />
 
+        <Link
+          to="/sell"
+          className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-medium shadow-soft hover:shadow-glow hover:scale-[1.03] transition-smooth shrink-0"
+        >
+          <ShoppingCart className="h-4 w-4" /> Sell
+        </Link>
+
         <Button
           variant="ghost"
           size="icon"

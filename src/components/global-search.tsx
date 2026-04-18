@@ -68,7 +68,8 @@ export function GlobalSearch() {
     setOpen(false);
     setQuery("");
     inputRef.current?.blur();
-    navigate({ to: "/inventory", search: { q: p.name } as never });
+    // Marg-style F2 quick-bill: jump to Sell with product pre-added to cart
+    navigate({ to: "/sell", search: { add: p.id } as never });
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -107,7 +108,7 @@ export function GlobalSearch() {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="Search medicines, batch, SKU…"
+          placeholder="Search Medicines"
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
         {query && (

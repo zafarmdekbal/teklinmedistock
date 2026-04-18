@@ -117,6 +117,7 @@ function InventoryPage() {
     setForm({
       name: p.name,
       category: p.category,
+      costPrice: p.costPrice != null ? String(p.costPrice) : "",
       price: String(p.price),
       stock: String(p.stock),
       expiry: p.expiry.slice(0, 10),

@@ -5,6 +5,7 @@ export type Product = {
   name: string;
   category: string;
   price: number; // selling price per unit (incl. tax base)
+  costPrice?: number; // buying price per unit (for profit calc)
   stock: number;
   expiry: string; // ISO date
   batch?: string;

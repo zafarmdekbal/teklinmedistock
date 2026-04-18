@@ -95,16 +95,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const main = (
     <div className="h-full flex flex-col min-w-0 bg-gradient-soft">
-      <header className="h-14 flex items-center justify-between gap-4 px-4 md:px-8 border-b border-border bg-background/70 backdrop-blur-md sticky top-0 z-10">
+      <header className="h-14 flex items-center gap-3 md:gap-4 px-4 md:px-8 border-b border-border bg-background/70 backdrop-blur-md sticky top-0 z-10">
         {/* Mobile brand */}
-        <div className="md:hidden flex items-center gap-2">
+        <div className="md:hidden flex items-center gap-2 shrink-0">
           <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
             <Pill className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="font-semibold">MediStock</span>
         </div>
 
-        <nav className="md:hidden flex gap-1">
+        {/* Global search — left side */}
+        <div className="flex-1 min-w-0 max-w-md animate-fade-in">
+          <GlobalSearch />
+        </div>
+
+        <nav className="md:hidden flex gap-1 shrink-0">
           {nav.map(({ to, icon: Icon }) => {
             const active = location.pathname.startsWith(to);
             return (
@@ -122,10 +126,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="flex-1 hidden md:block" />
+        <div className="hidden md:flex flex-1" />
 
-        <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
-          {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggle}
+          aria-label="Toggle theme"
+          className="relative overflow-hidden shrink-0 hover:bg-accent transition-smooth"
+        >
+          <Sun
+            className={cn(
+              "h-4 w-4 absolute transition-all duration-500",
+              theme === "light"
+                ? "rotate-0 scale-100 opacity-100"
+                : "-rotate-90 scale-0 opacity-0",
+            )}
+          />
+          <Moon
+            className={cn(
+              "h-4 w-4 absolute transition-all duration-500",
+              theme === "dark"
+                ? "rotate-0 scale-100 opacity-100"
+                : "rotate-90 scale-0 opacity-0",
+            )}
+          />
         </Button>
       </header>
 

@@ -17,7 +17,12 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
+type SellSearch = { add?: string };
+
 export const Route = createFileRoute("/_app/sell")({
+  validateSearch: (search: Record<string, unknown>): SellSearch => ({
+    add: typeof search.add === "string" ? search.add : undefined,
+  }),
   component: SellPage,
 });
 
@@ -38,6 +43,26 @@ function SellPage() {
   useEffect(() => {
     setProducts(productsStore.list());
   }, []);
+
+  const search = Route.useSearch();
+  const routeNavigate = Route.useNavigate();
+
+  // Marg F2 flow: when arriving with ?add=<productId>, push it into the cart
+  useEffect(() => {
+    if (!search.add) return;
+    const list = productsStore.list();
+    setProducts(list);
+    const p = list.find((x) => x.id === search.add);
+    if (p && p.stock > 0) {
+      const { isFirst } = cart.add(p, 1);
+      toast.success(`${p.name} added to cart`);
+      if (isFirst && !cart.customerSubmitted) setCustomerOpen(true);
+    } else if (p) {
+      toast.error(`${p.name} is out of stock`);
+    }
+    routeNavigate({ search: {}, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.add]);
 
   const filtered = useMemo(
     () =>

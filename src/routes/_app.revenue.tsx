@@ -121,7 +121,13 @@ function RevenuePage() {
       0,
     );
     const profit = filteredBills.reduce((s, b) => s + b.subtotal, 0) - cost;
-    return { totalRevenue, totalTax, avgBill, profit };
+    const cash = filteredBills
+      .filter((b) => b.paymentMethod === "cash")
+      .reduce((s, b) => s + b.total, 0);
+    const online = filteredBills
+      .filter((b) => b.paymentMethod === "online")
+      .reduce((s, b) => s + b.total, 0);
+    return { totalRevenue, totalTax, avgBill, profit, cash, online };
   }, [filteredBills]);
 
   // Daily breakdown across the range (cap at 90 buckets for perf/readability)
@@ -292,6 +298,21 @@ function RevenuePage() {
         <StatCard label="Estimated profit" value={formatMoney(stats.profit)} icon={Wallet} />
         <StatCard label="Tax collected" value={formatMoney(stats.totalTax)} icon={TrendingUp} />
         <StatCard label="Avg bill value" value={formatMoney(stats.avgBill)} icon={ReceiptText} />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card className="shadow-soft border-l-4 border-l-success">
+          <CardContent className="p-5">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Cash collection</div>
+            <div className="mt-1 text-2xl font-semibold text-success">{formatMoney(stats.cash)}</div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-soft border-l-4 border-l-primary">
+          <CardContent className="p-5">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Online collection</div>
+            <div className="mt-1 text-2xl font-semibold text-primary">{formatMoney(stats.online)}</div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card className="shadow-soft">

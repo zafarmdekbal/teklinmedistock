@@ -14,7 +14,152 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bill_items: {
+        Row: {
+          bill_id: string
+          cost_price: number | null
+          created_at: string
+          id: string
+          name: string
+          price: number
+          product_id: string | null
+          qty: number
+          tax_percent: number
+          user_id: string
+        }
+        Insert: {
+          bill_id: string
+          cost_price?: number | null
+          created_at?: string
+          id?: string
+          name: string
+          price: number
+          product_id?: string | null
+          qty: number
+          tax_percent?: number
+          user_id: string
+        }
+        Update: {
+          bill_id?: string
+          cost_price?: number | null
+          created_at?: string
+          id?: string
+          name?: string
+          price?: number
+          product_id?: string | null
+          qty?: number
+          tax_percent?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_items_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bills: {
+        Row: {
+          cashier: string | null
+          created_at: string
+          customer_name: string | null
+          customer_notes: string | null
+          customer_phone: string | null
+          id: string
+          number: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          subtotal: number
+          tax: number
+          total: number
+          user_id: string
+        }
+        Insert: {
+          cashier?: string | null
+          created_at?: string
+          customer_name?: string | null
+          customer_notes?: string | null
+          customer_phone?: string | null
+          id?: string
+          number: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          subtotal?: number
+          tax?: number
+          total?: number
+          user_id: string
+        }
+        Update: {
+          cashier?: string | null
+          created_at?: string
+          customer_name?: string | null
+          customer_notes?: string | null
+          customer_phone?: string | null
+          id?: string
+          number?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          subtotal?: number
+          tax?: number
+          total?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          batch: string | null
+          category: string
+          cost_price: number | null
+          created_at: string
+          expiry: string
+          id: string
+          manufacturer: string | null
+          name: string
+          prescription: boolean
+          price: number
+          sku: string | null
+          stock: number
+          tax_percent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          batch?: string | null
+          category?: string
+          cost_price?: number | null
+          created_at?: string
+          expiry: string
+          id?: string
+          manufacturer?: string | null
+          name: string
+          prescription?: boolean
+          price?: number
+          sku?: string | null
+          stock?: number
+          tax_percent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          batch?: string | null
+          category?: string
+          cost_price?: number | null
+          created_at?: string
+          expiry?: string
+          id?: string
+          manufacturer?: string | null
+          name?: string
+          prescription?: boolean
+          price?: number
+          sku?: string | null
+          stock?: number
+          tax_percent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +168,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      payment_method: "cash" | "online"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +295,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      payment_method: ["cash", "online"],
+    },
   },
 } as const

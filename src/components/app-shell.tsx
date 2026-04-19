@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -9,12 +10,19 @@ import {
   Pill,
   Moon,
   Sun,
+  Menu,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "@/components/global-search";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -35,8 +43,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, toggle } = useTheme();
   const { count } = useCart();
   const location = useLocation();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const sidebar = (
+  const sidebarBody = (onNavigate?: () => void) => (
     <aside className="h-full flex flex-col border-r border-sidebar-border bg-sidebar shadow-soft overflow-hidden">
       <div className="flex items-center gap-2 px-6 py-5 border-b border-sidebar-border">
         <div className="h-9 w-9 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow shrink-0">
@@ -57,6 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={to}
               to={to}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-smooth",
                 active
@@ -93,75 +103,76 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </aside>
   );
 
+  const themeButton = (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggle}
+      aria-label="Toggle theme"
+      className="relative overflow-hidden shrink-0 hover:bg-accent transition-smooth"
+    >
+      <Sun
+        className={cn(
+          "h-4 w-4 absolute transition-all duration-500",
+          theme === "light"
+            ? "rotate-0 scale-100 opacity-100"
+            : "-rotate-90 scale-0 opacity-0",
+        )}
+      />
+      <Moon
+        className={cn(
+          "h-4 w-4 absolute transition-all duration-500",
+          theme === "dark"
+            ? "rotate-0 scale-100 opacity-100"
+            : "rotate-90 scale-0 opacity-0",
+        )}
+      />
+    </Button>
+  );
+
+  const sellButton = (
+    <Link
+      to="/sell"
+      className="inline-flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-medium shadow-soft hover:shadow-glow hover:scale-[1.03] transition-smooth shrink-0"
+    >
+      <ShoppingCart className="h-4 w-4" />
+      <span className="hidden xs:inline sm:inline">Sell</span>
+    </Link>
+  );
+
   const main = (
     <div className="h-full flex flex-col min-w-0 bg-gradient-soft">
-      <header className="h-14 flex items-center gap-3 md:gap-4 px-4 md:px-8 border-b border-border bg-background/70 backdrop-blur-md sticky top-0 z-10">
-        {/* Mobile brand */}
-        <div className="md:hidden flex items-center gap-2 shrink-0">
-          <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <Pill className="h-4 w-4 text-primary-foreground" />
-          </div>
-        </div>
+      <header className="h-14 flex items-center gap-2 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-8 border-b border-border bg-background/70 backdrop-blur-md sticky top-0 z-10">
+        {/* Mobile hamburger -> opens sidebar sheet */}
+        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden shrink-0"
+              aria-label="Open menu"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-72 max-w-[80vw]">
+            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            {sidebarBody(() => setMobileNavOpen(false))}
+          </SheetContent>
+        </Sheet>
 
-        {/* Global search — left side */}
+        {/* Global search — left side, fills available space on mobile */}
         <div className="flex-1 min-w-0 max-w-md animate-fade-in">
           <GlobalSearch />
         </div>
 
-        <nav className="md:hidden flex gap-1 shrink-0">
-          {nav.map(({ to, icon: Icon }) => {
-            const active = location.pathname.startsWith(to);
-            return (
-              <Link
-                key={to}
-                to={to}
-                className={cn(
-                  "p-2 rounded-md transition-smooth",
-                  active ? "bg-accent text-accent-foreground" : "text-muted-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-              </Link>
-            );
-          })}
-        </nav>
-
         <div className="hidden md:flex flex-1" />
 
-        <Link
-          to="/sell"
-          className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-medium shadow-soft hover:shadow-glow hover:scale-[1.03] transition-smooth shrink-0"
-        >
-          <ShoppingCart className="h-4 w-4" /> Sell
-        </Link>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggle}
-          aria-label="Toggle theme"
-          className="relative overflow-hidden shrink-0 hover:bg-accent transition-smooth"
-        >
-          <Sun
-            className={cn(
-              "h-4 w-4 absolute transition-all duration-500",
-              theme === "light"
-                ? "rotate-0 scale-100 opacity-100"
-                : "-rotate-90 scale-0 opacity-0",
-            )}
-          />
-          <Moon
-            className={cn(
-              "h-4 w-4 absolute transition-all duration-500",
-              theme === "dark"
-                ? "rotate-0 scale-100 opacity-100"
-                : "rotate-90 scale-0 opacity-0",
-            )}
-          />
-        </Button>
+        {sellButton}
+        {themeButton}
       </header>
 
-      <main className="flex-1 overflow-auto px-4 md:px-8 py-6 md:py-8 animate-fade-in">
+      <main className="flex-1 overflow-auto px-3 sm:px-4 md:px-8 py-5 sm:py-6 md:py-8 animate-fade-in">
         {children}
       </main>
     </div>
@@ -169,7 +180,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-screen w-full bg-gradient-soft overflow-hidden">
-      {/* Mobile: stacked, no resizing */}
+      {/* Mobile / tablet: single column, nav lives in the hamburger sheet */}
       <div className="md:hidden h-full">{main}</div>
 
       {/* Desktop: resizable two-pane */}
@@ -182,7 +193,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             maxSize="480px"
             className="h-full"
           >
-            {sidebar}
+            {sidebarBody()}
           </ResizablePanel>
           <ResizableHandle className="pointer-events-none opacity-0" />
           <ResizablePanel id="main" className="h-full">

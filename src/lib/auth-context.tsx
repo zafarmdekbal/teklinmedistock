@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session as SbSession, User as SbUser } from "@supabase/supabase-js";
+import { setStorageUser } from "./storage";
 
 export type Session = { userId: string; name: string; email: string };
 
@@ -37,11 +38,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Listener FIRST, then fetch existing session.
     const { data: sub } = supabase.auth.onAuthStateChange((_event, sb) => {
-      setSession(toSession(sb));
+      const next = toSession(sb);
+      setStorageUser(next?.userId ?? null);
+      setSession(next);
     });
 
     supabase.auth.getSession().then(({ data }) => {
-      setSession(toSession(data.session));
+      const next = toSession(data.session);
+      setStorageUser(next?.userId ?? null);
+      setSession(next);
       setReady(true);
     });
 

@@ -39,7 +39,15 @@ export type Bill = {
   cashier?: string;
 };
 
-const KEYS = {
+// Per-user namespacing: storage keys are scoped to the active user id so each
+// account starts fresh and cannot see another user's products/bills.
+let currentUserId: string | null = null;
+
+export function setStorageUser(userId: string | null) {
+  currentUserId = userId;
+}
+
+const BASE_KEYS = {
   products: "pharma.products",
   bills: "pharma.bills",
   users: "pharma.users",
@@ -47,10 +55,20 @@ const KEYS = {
   theme: "pharma.theme",
 } as const;
 
+// Theme/users/session stay global; per-user data gets the uid suffix.
+const PER_USER = new Set<string>([BASE_KEYS.products, BASE_KEYS.bills]);
+
+function scopedKey(key: string) {
+  if (PER_USER.has(key) && currentUserId) return `${key}::${currentUserId}`;
+  return key;
+}
+
+const KEYS = BASE_KEYS;
+
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
-    const raw = window.localStorage.getItem(key);
+    const raw = window.localStorage.getItem(scopedKey(key));
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
@@ -59,7 +77,7 @@ function read<T>(key: string, fallback: T): T {
 
 function write<T>(key: string, value: T) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(key, JSON.stringify(value));
+  window.localStorage.setItem(scopedKey(key), JSON.stringify(value));
 }
 
 // Products

@@ -124,9 +124,6 @@ export function GlobalSearch() {
             <X className="h-3.5 w-3.5" />
           </button>
         )}
-        <kbd className="hidden sm:inline-flex items-center gap-1 rounded border border-border bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-          /
-        </kbd>
       </div>
 
       {open && (

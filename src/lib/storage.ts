@@ -1,18 +1,23 @@
-// Tiny localStorage helpers + domain types for the pharma app.
+// Cloud-backed data layer (Supabase) for products and bills.
+// Each user only sees their own data via RLS.
+
+import { supabase } from "@/integrations/supabase/client";
+
+export type PaymentMethod = "cash" | "online";
 
 export type Product = {
   id: string;
   name: string;
   category: string;
-  price: number; // selling price per unit (incl. tax base)
-  costPrice?: number; // buying price per unit (for profit calc)
+  price: number;
+  costPrice?: number;
   stock: number;
-  expiry: string; // ISO date
+  expiry: string; // ISO
   batch?: string;
   manufacturer?: string;
   sku?: string;
   prescription?: boolean;
-  taxPercent?: number; // GST %
+  taxPercent?: number;
   createdAt: string;
 };
 
@@ -27,7 +32,7 @@ export type BillItem = {
 
 export type Bill = {
   id: string;
-  number: string; // human friendly INV-0001
+  number: string;
   customerName?: string;
   customerPhone?: string;
   customerNotes?: string;
@@ -35,171 +40,274 @@ export type Bill = {
   subtotal: number;
   tax: number;
   total: number;
+  paymentMethod: PaymentMethod;
   createdAt: string;
   cashier?: string;
 };
 
-// Per-user namespacing: storage keys are scoped to the active user id so each
-// account starts fresh and cannot see another user's products/bills.
-let currentUserId: string | null = null;
-
-export function setStorageUser(userId: string | null) {
-  currentUserId = userId;
-}
-
-const BASE_KEYS = {
-  products: "pharma.products",
-  bills: "pharma.bills",
-  users: "pharma.users",
-  session: "pharma.session",
-  theme: "pharma.theme",
-} as const;
-
-// Theme/users/session stay global; per-user data gets the uid suffix.
-const PER_USER = new Set<string>([BASE_KEYS.products, BASE_KEYS.bills]);
-
-function scopedKey(key: string) {
-  if (PER_USER.has(key) && currentUserId) return `${key}::${currentUserId}`;
-  return key;
-}
-
-const KEYS = BASE_KEYS;
-
-function read<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = window.localStorage.getItem(scopedKey(key));
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function write<T>(key: string, value: T) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(scopedKey(key), JSON.stringify(value));
-}
-
-// Products
-export const productsStore = {
-  list: () => read<Product[]>(KEYS.products, []),
-  save: (items: Product[]) => write(KEYS.products, items),
-  add: (p: Omit<Product, "id" | "createdAt">) => {
-    const list = productsStore.list();
-    const item: Product = { ...p, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-    list.unshift(item);
-    productsStore.save(list);
-    return item;
-  },
-  update: (id: string, patch: Partial<Product>) => {
-    const list = productsStore.list().map((p) => (p.id === id ? { ...p, ...patch } : p));
-    productsStore.save(list);
-  },
-  remove: (id: string) => {
-    productsStore.save(productsStore.list().filter((p) => p.id !== id));
-  },
-  decrementStock: (id: string, qty: number) => {
-    const list = productsStore.list().map((p) =>
-      p.id === id ? { ...p, stock: Math.max(0, p.stock - qty) } : p,
-    );
-    productsStore.save(list);
-  },
+// --- Mappers (DB row -> domain) ---
+type ProductRow = {
+  id: string;
+  name: string;
+  category: string;
+  price: number | string;
+  cost_price: number | string | null;
+  stock: number;
+  expiry: string;
+  batch: string | null;
+  manufacturer: string | null;
+  sku: string | null;
+  prescription: boolean;
+  tax_percent: number | string;
+  created_at: string;
 };
 
-// Bills
-export const billsStore = {
-  list: () => read<Bill[]>(KEYS.bills, []),
-  save: (items: Bill[]) => write(KEYS.bills, items),
-  add: (b: Omit<Bill, "id" | "number" | "createdAt">) => {
-    const list = billsStore.list();
-    const number = `INV-${String(list.length + 1).padStart(4, "0")}`;
-    const bill: Bill = {
-      ...b,
-      id: crypto.randomUUID(),
-      number,
-      createdAt: new Date().toISOString(),
-    };
-    list.unshift(bill);
-    billsStore.save(list);
-    return bill;
-  },
-  get: (id: string) => billsStore.list().find((b) => b.id === id),
-};
+const num = (v: number | string | null | undefined) =>
+  v == null ? undefined : typeof v === "string" ? Number(v) : v;
 
-// Users + session (DEMO ONLY — passwords stored in localStorage; not for production use)
-export type User = { id: string; name: string; email: string; password: string };
-export type Session = { userId: string; name: string; email: string };
-
-export const authStore = {
-  users: () => read<User[]>(KEYS.users, []),
-  saveUsers: (u: User[]) => write(KEYS.users, u),
-  session: () => read<Session | null>(KEYS.session, null),
-  setSession: (s: Session | null) => {
-    if (s) write(KEYS.session, s);
-    else if (typeof window !== "undefined") window.localStorage.removeItem(KEYS.session);
-  },
-  signup: (name: string, email: string, password: string) => {
-    const users = authStore.users();
-    if (users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
-      throw new Error("An account with this email already exists.");
-    }
-    const user: User = { id: crypto.randomUUID(), name, email, password };
-    users.push(user);
-    authStore.saveUsers(users);
-    const session: Session = { userId: user.id, name: user.name, email: user.email };
-    authStore.setSession(session);
-    return session;
-  },
-  login: (email: string, password: string) => {
-    const user = authStore
-      .users()
-      .find((u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-    if (!user) throw new Error("Invalid email or password.");
-    const session: Session = { userId: user.id, name: user.name, email: user.email };
-    authStore.setSession(session);
-    return session;
-  },
-  logout: () => authStore.setSession(null),
-};
-
-// Demo seed
-export function seedDemoProducts(force = false) {
-  if (typeof window === "undefined") return;
-  const existing = productsStore.list();
-  if (existing.length > 0 && !force) return;
-
-  const today = new Date();
-  const addMonths = (m: number) => {
-    const d = new Date(today);
-    d.setMonth(d.getMonth() + m);
-    return d.toISOString();
+function rowToProduct(r: ProductRow): Product {
+  return {
+    id: r.id,
+    name: r.name,
+    category: r.category,
+    price: Number(r.price) || 0,
+    costPrice: num(r.cost_price),
+    stock: r.stock,
+    expiry: r.expiry,
+    batch: r.batch ?? undefined,
+    manufacturer: r.manufacturer ?? undefined,
+    sku: r.sku ?? undefined,
+    prescription: r.prescription,
+    taxPercent: Number(r.tax_percent) || 0,
+    createdAt: r.created_at,
   };
-
-  const demo: Array<Omit<Product, "id" | "createdAt">> = [
-    { name: "Paracetamol 500mg", category: "Analgesic", price: 25, stock: 120, expiry: addMonths(18), batch: "PCM2245", manufacturer: "Cipla", sku: "MED-001", taxPercent: 12, prescription: false },
-    { name: "Amoxicillin 250mg", category: "Antibiotic", price: 85, stock: 40, expiry: addMonths(12), batch: "AMX1180", manufacturer: "Sun Pharma", sku: "MED-002", taxPercent: 12, prescription: true },
-    { name: "Cetirizine 10mg", category: "Antihistamine", price: 35, stock: 75, expiry: addMonths(20), batch: "CTZ0921", manufacturer: "Dr. Reddy's", sku: "MED-003", taxPercent: 5, prescription: false },
-    { name: "Ibuprofen 400mg", category: "Analgesic", price: 45, stock: 8, expiry: addMonths(2), batch: "IBU3340", manufacturer: "Abbott", sku: "MED-004", taxPercent: 12, prescription: false },
-    { name: "Metformin 500mg", category: "Diabetes", price: 60, stock: 90, expiry: addMonths(15), batch: "MET7702", manufacturer: "USV", sku: "MED-005", taxPercent: 5, prescription: true },
-    { name: "Omeprazole 20mg", category: "Gastro", price: 55, stock: 50, expiry: addMonths(10), batch: "OMP4412", manufacturer: "Cipla", sku: "MED-006", taxPercent: 12, prescription: true },
-    { name: "Vitamin D3 60K", category: "Supplement", price: 95, stock: 30, expiry: addMonths(24), batch: "VTD0088", manufacturer: "Mankind", sku: "MED-007", taxPercent: 18, prescription: false },
-    { name: "ORS Sachet (Orange)", category: "Hydration", price: 22, stock: 200, expiry: addMonths(14), batch: "ORS5521", manufacturer: "FDC", sku: "MED-008", taxPercent: 5, prescription: false },
-    { name: "Cough Syrup 100ml", category: "Cold & Flu", price: 110, stock: 18, expiry: addMonths(9), batch: "CGH1190", manufacturer: "Glenmark", sku: "MED-009", taxPercent: 12, prescription: false },
-    { name: "Insulin Pen 100IU", category: "Diabetes", price: 720, stock: 12, expiry: addMonths(6), batch: "INS0034", manufacturer: "Novo Nordisk", sku: "MED-010", taxPercent: 5, prescription: true },
-    { name: "Surgical Mask (50pc)", category: "Consumable", price: 180, stock: 60, expiry: addMonths(36), batch: "MSK2024", manufacturer: "3M", sku: "MED-011", taxPercent: 18, prescription: false },
-    { name: "Digital Thermometer", category: "Device", price: 250, stock: 15, expiry: addMonths(48), batch: "THR0012", manufacturer: "Omron", sku: "MED-012", taxPercent: 18, prescription: false },
-  ];
-
-  const list = demo.map((p) => ({
-    ...p,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-  }));
-  productsStore.save(force ? list : [...list, ...existing]);
 }
 
-// Theme
-export const themeStore = {
-  get: () => read<"light" | "dark">(KEYS.theme, "light"),
-  set: (t: "light" | "dark") => write(KEYS.theme, t),
+async function requireUserId(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  const id = data.user?.id;
+  if (!id) throw new Error("Not authenticated");
+  return id;
+}
+
+// --- Products ---
+export const productsStore = {
+  async list(): Promise<Product[]> {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((r) => rowToProduct(r as ProductRow));
+  },
+
+  async add(p: Omit<Product, "id" | "createdAt">): Promise<Product> {
+    const user_id = await requireUserId();
+    const { data, error } = await supabase
+      .from("products")
+      .insert({
+        user_id,
+        name: p.name,
+        category: p.category,
+        price: p.price,
+        cost_price: p.costPrice ?? null,
+        stock: p.stock,
+        expiry: p.expiry,
+        batch: p.batch ?? null,
+        manufacturer: p.manufacturer ?? null,
+        sku: p.sku ?? null,
+        prescription: !!p.prescription,
+        tax_percent: p.taxPercent ?? 0,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return rowToProduct(data as ProductRow);
+  },
+
+  async update(id: string, patch: Partial<Product>): Promise<void> {
+    const update: Record<string, unknown> = {};
+    if (patch.name !== undefined) update.name = patch.name;
+    if (patch.category !== undefined) update.category = patch.category;
+    if (patch.price !== undefined) update.price = patch.price;
+    if (patch.costPrice !== undefined) update.cost_price = patch.costPrice ?? null;
+    if (patch.stock !== undefined) update.stock = patch.stock;
+    if (patch.expiry !== undefined) update.expiry = patch.expiry;
+    if (patch.batch !== undefined) update.batch = patch.batch ?? null;
+    if (patch.manufacturer !== undefined) update.manufacturer = patch.manufacturer ?? null;
+    if (patch.sku !== undefined) update.sku = patch.sku ?? null;
+    if (patch.prescription !== undefined) update.prescription = patch.prescription;
+    if (patch.taxPercent !== undefined) update.tax_percent = patch.taxPercent ?? 0;
+    const { error } = await supabase.from("products").update(update).eq("id", id);
+    if (error) throw error;
+  },
+
+  async remove(id: string): Promise<void> {
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) throw error;
+  },
+
+  async decrementStock(id: string, qty: number): Promise<void> {
+    // Read-modify-write (single user, low contention)
+    const { data, error } = await supabase
+      .from("products")
+      .select("stock")
+      .eq("id", id)
+      .single();
+    if (error) throw error;
+    const next = Math.max(0, (data?.stock ?? 0) - qty);
+    const { error: upErr } = await supabase
+      .from("products")
+      .update({ stock: next })
+      .eq("id", id);
+    if (upErr) throw upErr;
+  },
 };
+
+// --- Bills ---
+type BillRow = {
+  id: string;
+  number: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  customer_notes: string | null;
+  cashier: string | null;
+  payment_method: PaymentMethod;
+  subtotal: number | string;
+  tax: number | string;
+  total: number | string;
+  created_at: string;
+};
+type BillItemRow = {
+  bill_id: string;
+  product_id: string | null;
+  name: string;
+  price: number | string;
+  cost_price: number | string | null;
+  qty: number;
+  tax_percent: number | string;
+};
+
+function rowToBill(b: BillRow, items: BillItemRow[]): Bill {
+  return {
+    id: b.id,
+    number: b.number,
+    customerName: b.customer_name ?? undefined,
+    customerPhone: b.customer_phone ?? undefined,
+    customerNotes: b.customer_notes ?? undefined,
+    cashier: b.cashier ?? undefined,
+    paymentMethod: b.payment_method,
+    subtotal: Number(b.subtotal) || 0,
+    tax: Number(b.tax) || 0,
+    total: Number(b.total) || 0,
+    createdAt: b.created_at,
+    items: items.map((it) => ({
+      productId: it.product_id ?? "",
+      name: it.name,
+      price: Number(it.price) || 0,
+      costPrice: num(it.cost_price),
+      qty: it.qty,
+      taxPercent: Number(it.tax_percent) || 0,
+    })),
+  };
+}
+
+export const billsStore = {
+  async list(): Promise<Bill[]> {
+    const { data: bills, error } = await supabase
+      .from("bills")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    if (!bills || bills.length === 0) return [];
+    const ids = bills.map((b) => b.id);
+    const { data: items, error: itErr } = await supabase
+      .from("bill_items")
+      .select("*")
+      .in("bill_id", ids);
+    if (itErr) throw itErr;
+    const map = new Map<string, BillItemRow[]>();
+    for (const it of (items ?? []) as BillItemRow[]) {
+      const arr = map.get(it.bill_id) ?? [];
+      arr.push(it);
+      map.set(it.bill_id, arr);
+    }
+    return (bills as BillRow[]).map((b) => rowToBill(b, map.get(b.id) ?? []));
+  },
+
+  async get(id: string): Promise<Bill | null> {
+    const { data: b, error } = await supabase
+      .from("bills")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!b) return null;
+    const { data: items, error: itErr } = await supabase
+      .from("bill_items")
+      .select("*")
+      .eq("bill_id", id);
+    if (itErr) throw itErr;
+    return rowToBill(b as BillRow, (items ?? []) as BillItemRow[]);
+  },
+
+  async add(b: Omit<Bill, "id" | "number" | "createdAt">): Promise<Bill> {
+    const user_id = await requireUserId();
+    // Compute next invoice number per user
+    const { count, error: cErr } = await supabase
+      .from("bills")
+      .select("*", { count: "exact", head: true });
+    if (cErr) throw cErr;
+    const number = `INV-${String((count ?? 0) + 1).padStart(4, "0")}`;
+    const { data: bill, error: insErr } = await supabase
+      .from("bills")
+      .insert({
+        user_id,
+        number,
+        customer_name: b.customerName ?? null,
+        customer_phone: b.customerPhone ?? null,
+        customer_notes: b.customerNotes ?? null,
+        cashier: b.cashier ?? null,
+        payment_method: b.paymentMethod,
+        subtotal: b.subtotal,
+        tax: b.tax,
+        total: b.total,
+      })
+      .select()
+      .single();
+    if (insErr) throw insErr;
+    if (b.items.length > 0) {
+      const { error: itErr } = await supabase.from("bill_items").insert(
+        b.items.map((it) => ({
+          bill_id: bill.id,
+          user_id,
+          product_id: it.productId || null,
+          name: it.name,
+          price: it.price,
+          cost_price: it.costPrice ?? null,
+          qty: it.qty,
+          tax_percent: it.taxPercent,
+        })),
+      );
+      if (itErr) throw itErr;
+    }
+    return rowToBill(bill as BillRow, []);
+  },
+};
+
+// --- Theme (localStorage stays — UI preference only) ---
+const THEME_KEY = "pharma.theme";
+export const themeStore = {
+  get: (): "light" | "dark" => {
+    if (typeof window === "undefined") return "light";
+    return (window.localStorage.getItem(THEME_KEY) as "light" | "dark") ?? "light";
+  },
+  set: (t: "light" | "dark") => {
+    if (typeof window !== "undefined") window.localStorage.setItem(THEME_KEY, t);
+  },
+};
+
+// Kept for backwards-compat call sites; cloud is per-user via RLS automatically.
+export function setStorageUser(_userId: string | null) {
+  // no-op
+}

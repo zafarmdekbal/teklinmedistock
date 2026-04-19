@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import type { Product } from "./storage";
+import type { PaymentMethod, Product } from "./storage";
 
 export type CartItem = { product: Product; qty: number };
 
@@ -21,6 +21,8 @@ type CartCtx = {
   setCustomer: (c: Customer) => void;
   customerSubmitted: boolean;
   setCustomerSubmitted: (v: boolean) => void;
+  paymentMethod: PaymentMethod;
+  setPaymentMethod: (m: PaymentMethod) => void;
 };
 
 const Ctx = createContext<CartCtx | null>(null);
@@ -29,6 +31,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [customer, setCustomer] = useState<Customer>(emptyCustomer);
   const [customerSubmitted, setCustomerSubmitted] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
 
   const add: CartCtx["add"] = (product, qty = 1) => {
     const isFirst = items.length === 0;
@@ -60,6 +63,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems([]);
     setCustomer(emptyCustomer);
     setCustomerSubmitted(false);
+    setPaymentMethod("cash");
   };
 
   const subtotal = items.reduce((s, i) => s + i.product.price * i.qty, 0);
@@ -86,6 +90,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setCustomer,
         customerSubmitted,
         setCustomerSubmitted,
+        paymentMethod,
+        setPaymentMethod,
       }}
     >
       {children}

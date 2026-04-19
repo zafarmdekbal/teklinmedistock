@@ -98,7 +98,12 @@ function InventoryPage() {
     toast.success(`${p.name} added to cart`);
   };
 
-  const refresh = () => setItems(productsStore.list());
+  const refresh = () => {
+    productsStore
+      .list()
+      .then(setItems)
+      .catch(() => setItems([]));
+  };
   useEffect(refresh, []);
 
   useEffect(() => {
@@ -151,7 +156,7 @@ function InventoryPage() {
     setOpen(true);
   };
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     const payload = {
       name: form.name.trim(),
@@ -170,22 +175,30 @@ function InventoryPage() {
       toast.error("Please fill name, price, stock and expiry.");
       return;
     }
-    if (editing) {
-      productsStore.update(editing.id, payload);
-      toast.success("Product updated");
-    } else {
-      productsStore.add(payload);
-      toast.success("Product added");
+    try {
+      if (editing) {
+        await productsStore.update(editing.id, payload);
+        toast.success("Product updated");
+      } else {
+        await productsStore.add(payload);
+        toast.success("Product added");
+      }
+      refresh();
+      setOpen(false);
+    } catch (err) {
+      toast.error((err as Error).message || "Failed to save product");
     }
-    refresh();
-    setOpen(false);
   };
 
-  const remove = (p: Product) => {
+  const remove = async (p: Product) => {
     if (!confirm(`Delete ${p.name}?`)) return;
-    productsStore.remove(p.id);
-    refresh();
-    toast.success("Product removed");
+    try {
+      await productsStore.remove(p.id);
+      refresh();
+      toast.success("Product removed");
+    } catch (err) {
+      toast.error((err as Error).message || "Failed to delete");
+    }
   };
 
   const filterLabel: Record<NonNullable<InventorySearch["filter"]>, string> = {

@@ -17,6 +17,7 @@ import { useTheme } from "@/lib/theme-context";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "@/components/global-search";
+import { CartFab } from "@/components/cart-fab";
 import {
   Sheet,
   SheetContent,
@@ -175,6 +176,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-auto px-3 sm:px-4 md:px-8 py-5 sm:py-6 md:py-8 animate-fade-in">
         {children}
       </main>
+      <CartFab />
     </div>
   );
 

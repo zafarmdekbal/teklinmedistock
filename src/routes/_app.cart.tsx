@@ -1,12 +1,22 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Minus, Plus, ShoppingCart, Trash2, UserRound, Pencil } from "lucide-react";
+import {
+  Banknote,
+  Minus,
+  Plus,
+  Smartphone,
+  ShoppingCart,
+  Trash2,
+  UserRound,
+  Pencil,
+} from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { billsStore, productsStore } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomerDetailsDialog } from "@/components/customer-details-dialog";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/cart")({
@@ -22,30 +32,42 @@ function CartPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
   const [customerOpen, setCustomerOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const checkout = () => {
-    if (cart.items.length === 0) return;
-    const bill = billsStore.add({
-      customerName: cart.customer.name || undefined,
-      customerPhone: cart.customer.phone || undefined,
-      customerNotes: cart.customer.notes || undefined,
-      cashier: session?.name,
-      items: cart.items.map((i) => ({
-        productId: i.product.id,
-        name: i.product.name,
-        price: i.product.price,
-        costPrice: i.product.costPrice,
-        qty: i.qty,
-        taxPercent: i.product.taxPercent ?? 0,
-      })),
-      subtotal: cart.subtotal,
-      tax: cart.tax,
-      total: cart.total,
-    });
-    cart.items.forEach((i) => productsStore.decrementStock(i.product.id, i.qty));
-    cart.clear();
-    toast.success(`Bill ${bill.number} generated`);
-    navigate({ to: "/bills/$id", params: { id: bill.id } });
+  const checkout = async () => {
+    if (cart.items.length === 0 || submitting) return;
+    setSubmitting(true);
+    try {
+      const bill = await billsStore.add({
+        customerName: cart.customer.name || undefined,
+        customerPhone: cart.customer.phone || undefined,
+        customerNotes: cart.customer.notes || undefined,
+        cashier: session?.name,
+        paymentMethod: cart.paymentMethod,
+        items: cart.items.map((i) => ({
+          productId: i.product.id,
+          name: i.product.name,
+          price: i.product.price,
+          costPrice: i.product.costPrice,
+          qty: i.qty,
+          taxPercent: i.product.taxPercent ?? 0,
+        })),
+        subtotal: cart.subtotal,
+        tax: cart.tax,
+        total: cart.total,
+      });
+      // Decrement stock for each line (sequential to keep RLS-safe simple writes)
+      await Promise.all(
+        cart.items.map((i) => productsStore.decrementStock(i.product.id, i.qty)),
+      );
+      cart.clear();
+      toast.success(`Bill ${bill.number} generated`);
+      navigate({ to: "/bills/$id", params: { id: bill.id } });
+    } catch (e) {
+      toast.error((e as Error).message || "Failed to generate bill");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const hasCustomer =
@@ -59,7 +81,7 @@ function CartPage() {
             <ShoppingCart className="h-6 w-6 text-primary" /> Cart
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Review items and finalize the sale.
+            Review items, choose payment, and finalize the sale.
           </p>
         </div>
         <Button asChild variant="outline">
@@ -169,6 +191,29 @@ function CartPage() {
             </CardContent>
           </Card>
 
+          {/* Payment method */}
+          <Card className="shadow-soft">
+            <CardHeader>
+              <CardTitle className="text-base">Payment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-2">
+                <PayChoice
+                  label="Cash"
+                  Icon={Banknote}
+                  active={cart.paymentMethod === "cash"}
+                  onClick={() => cart.setPaymentMethod("cash")}
+                />
+                <PayChoice
+                  label="Online"
+                  Icon={Smartphone}
+                  active={cart.paymentMethod === "online"}
+                  onClick={() => cart.setPaymentMethod("online")}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="shadow-soft">
             <CardHeader>
               <CardTitle className="text-base">Summary</CardTitle>
@@ -182,10 +227,10 @@ function CartPage() {
               <Button
                 className="w-full shadow-soft mt-3"
                 size="lg"
-                onClick={checkout}
-                disabled={cart.items.length === 0}
+                onClick={() => void checkout()}
+                disabled={cart.items.length === 0 || submitting}
               >
-                Generate bill
+                {submitting ? "Generating…" : "Generate bill"}
               </Button>
             </CardContent>
           </Card>
@@ -194,6 +239,35 @@ function CartPage() {
 
       <CustomerDetailsDialog open={customerOpen} onOpenChange={setCustomerOpen} />
     </div>
+  );
+}
+
+function PayChoice({
+  label,
+  Icon,
+  active,
+  onClick,
+}: {
+  label: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm font-medium transition-smooth",
+        active
+          ? "border-primary bg-primary/10 text-primary shadow-soft"
+          : "border-border hover:border-primary/40 hover:bg-accent/40",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </button>
   );
 }
 

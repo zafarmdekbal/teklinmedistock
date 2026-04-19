@@ -13,9 +13,21 @@ export function GlobalSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Refresh product list when search opens
+  // Refresh product list when search opens (cloud fetch)
   useEffect(() => {
-    if (open) setProducts(productsStore.list());
+    if (!open) return;
+    let cancelled = false;
+    productsStore
+      .list()
+      .then((rows) => {
+        if (!cancelled) setProducts(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setProducts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   // Global keyboard shortcut: "/" or Ctrl/Cmd+K to focus
@@ -68,7 +80,6 @@ export function GlobalSearch() {
     setOpen(false);
     setQuery("");
     inputRef.current?.blur();
-    // Marg-style F2 quick-bill: jump to Sell with product pre-added to cart
     navigate({ to: "/sell", search: { add: p.id } as never });
   };
 

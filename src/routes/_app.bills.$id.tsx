@@ -18,7 +18,18 @@ function BillDetailPage() {
   const [bill, setBill] = useState<Bill | null>(null);
 
   useEffect(() => {
-    setBill(billsStore.get(id) ?? null);
+    let cancelled = false;
+    billsStore
+      .get(id)
+      .then((b) => {
+        if (!cancelled) setBill(b);
+      })
+      .catch(() => {
+        if (!cancelled) setBill(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (!bill) {
@@ -80,6 +91,8 @@ function BillDetailPage() {
           <div className="text-right">
             <div className="text-xs text-muted-foreground uppercase tracking-wide">Cashier</div>
             <div className="font-medium mt-1">{bill.cashier ?? "—"}</div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wide mt-2">Payment</div>
+            <div className="font-medium mt-1 capitalize">{bill.paymentMethod}</div>
           </div>
         </div>
 

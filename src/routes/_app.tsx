@@ -1,7 +1,6 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/app-shell";
-import { seedDemoProducts } from "@/lib/storage";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_app")({
@@ -11,10 +10,6 @@ export const Route = createFileRoute("/_app")({
 function AppLayout() {
   const { session, ready } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    seedDemoProducts();
-  }, []);
 
   useEffect(() => {
     if (ready && !session) {

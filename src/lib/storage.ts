@@ -126,7 +126,19 @@ export const productsStore = {
   },
 
   async update(id: string, patch: Partial<Product>): Promise<void> {
-    const update: Record<string, unknown> = {};
+    const update: {
+      name?: string;
+      category?: string;
+      price?: number;
+      cost_price?: number | null;
+      stock?: number;
+      expiry?: string;
+      batch?: string | null;
+      manufacturer?: string | null;
+      sku?: string | null;
+      prescription?: boolean;
+      tax_percent?: number;
+    } = {};
     if (patch.name !== undefined) update.name = patch.name;
     if (patch.category !== undefined) update.category = patch.category;
     if (patch.price !== undefined) update.price = patch.price;

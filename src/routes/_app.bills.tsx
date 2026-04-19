@@ -47,7 +47,18 @@ function BillsPage() {
   const range: FilterRange = search.range ?? "all";
 
   useEffect(() => {
-    setBills(billsStore.list());
+    let cancelled = false;
+    billsStore
+      .list()
+      .then((b) => {
+        if (!cancelled) setBills(b);
+      })
+      .catch(() => {
+        if (!cancelled) setBills([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const setRange = (r: FilterRange) => {

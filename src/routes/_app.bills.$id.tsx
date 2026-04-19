@@ -18,7 +18,18 @@ function BillDetailPage() {
   const [bill, setBill] = useState<Bill | null>(null);
 
   useEffect(() => {
-    setBill(billsStore.get(id) ?? null);
+    let cancelled = false;
+    billsStore
+      .get(id)
+      .then((b) => {
+        if (!cancelled) setBill(b);
+      })
+      .catch(() => {
+        if (!cancelled) setBill(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (!bill) {

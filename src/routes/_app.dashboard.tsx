@@ -18,8 +18,21 @@ function DashboardPage() {
   const [bills, setBills] = useState<Bill[]>([]);
 
   useEffect(() => {
-    setProducts(productsStore.list());
-    setBills(billsStore.list());
+    let cancelled = false;
+    Promise.all([productsStore.list(), billsStore.list()])
+      .then(([p, b]) => {
+        if (cancelled) return;
+        setProducts(p);
+        setBills(b);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setProducts([]);
+        setBills([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const totalSales = bills.reduce((s, b) => s + b.total, 0);

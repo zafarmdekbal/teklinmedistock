@@ -98,7 +98,12 @@ function InventoryPage() {
     toast.success(`${p.name} added to cart`);
   };
 
-  const refresh = () => setItems(productsStore.list());
+  const refresh = () => {
+    productsStore
+      .list()
+      .then(setItems)
+      .catch(() => setItems([]));
+  };
   useEffect(refresh, []);
 
   useEffect(() => {

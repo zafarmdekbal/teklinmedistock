@@ -91,6 +91,8 @@ function BillDetailPage() {
           <div className="text-right">
             <div className="text-xs text-muted-foreground uppercase tracking-wide">Cashier</div>
             <div className="font-medium mt-1">{bill.cashier ?? "—"}</div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wide mt-2">Payment</div>
+            <div className="font-medium mt-1 capitalize">{bill.paymentMethod}</div>
           </div>
         </div>
 

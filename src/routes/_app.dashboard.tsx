@@ -45,10 +45,11 @@ function DashboardPage() {
   }, []);
 
   const totalSales = bills.reduce((s, b) => s + b.total, 0);
-  const stockValue = products.reduce((s, p) => s + p.price * p.stock, 0);
-  const lowStock = products.filter((p) => p.stock <= 10);
-  const expiringSoon = products
-    .filter((p) => {
+  // Stock value = buying price × quantity (fallback to selling price if no cost set)
+  const stockValue = products.reduce(
+    (s, p) => s + (p.costPrice ?? p.price) * p.stock,
+    0,
+  );
       const d = new Date(p.expiry).getTime();
       const days = (d - Date.now()) / (1000 * 60 * 60 * 24);
       return days <= 60 && days >= 0;

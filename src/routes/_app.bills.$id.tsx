@@ -205,3 +205,26 @@ function Row({ label, value, bold }: { label: string; value: string; bold?: bool
     </div>
   );
 }
+
+function MiniStat({
+  label,
+  value,
+  icon: Icon,
+  valueClass,
+}: {
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+  valueClass?: string;
+}) {
+  return (
+    <Card className="shadow-soft p-3">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" /> {label}
+      </div>
+      <div className={`mt-1 text-base font-semibold ${valueClass ?? ""}`}>
+        {value}
+      </div>
+    </Card>
+  );
+}

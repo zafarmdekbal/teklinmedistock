@@ -20,16 +20,20 @@ import {
 import { Label } from "@/components/ui/label";
 
 type FilterRange = "all" | "day" | "month" | "year" | "custom";
-type BillsSearch = { range?: FilterRange; from?: string; to?: string };
+type PayFilter = "all" | "cash" | "online";
+type BillsSearch = { range?: FilterRange; from?: string; to?: string; pay?: PayFilter };
 
 export const Route = createFileRoute("/_app/bills")({
   validateSearch: (search: Record<string, unknown>): BillsSearch => {
     const r = search.range as string | undefined;
     const valid: FilterRange[] = ["all", "day", "month", "year", "custom"];
+    const p = search.pay as string | undefined;
+    const validPay: PayFilter[] = ["all", "cash", "online"];
     return {
       range: valid.includes(r as FilterRange) ? (r as FilterRange) : undefined,
       from: typeof search.from === "string" ? search.from : undefined,
       to: typeof search.to === "string" ? search.to : undefined,
+      pay: validPay.includes(p as PayFilter) ? (p as PayFilter) : undefined,
     };
   },
   component: BillsPage,
@@ -45,6 +49,7 @@ function BillsPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const range: FilterRange = search.range ?? "all";
+  const pay: PayFilter = search.pay ?? "all";
 
   useEffect(() => {
     let cancelled = false;

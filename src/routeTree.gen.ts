@@ -19,6 +19,7 @@ import { Route as AppSellRouteImport } from './routes/_app.sell'
 import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
 import { Route as AppInventoryRouteImport } from './routes/_app.inventory'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppCustomersRouteImport } from './routes/_app.customers'
 import { Route as AppCartRouteImport } from './routes/_app.cart'
 import { Route as AppBillsRouteImport } from './routes/_app.bills'
 import { Route as AppBillsIdRouteImport } from './routes/_app.bills.$id'
@@ -72,6 +73,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCustomersRoute = AppCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCartRoute = AppCartRouteImport.update({
   id: '/cart',
   path: '/cart',
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/bills': typeof AppBillsRouteWithChildren
   '/cart': typeof AppCartRoute
+  '/customers': typeof AppCustomersRoute
   '/dashboard': typeof AppDashboardRoute
   '/inventory': typeof AppInventoryRoute
   '/revenue': typeof AppRevenueRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/bills': typeof AppBillsRouteWithChildren
   '/cart': typeof AppCartRoute
+  '/customers': typeof AppCustomersRoute
   '/dashboard': typeof AppDashboardRoute
   '/inventory': typeof AppInventoryRoute
   '/revenue': typeof AppRevenueRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_app/bills': typeof AppBillsRouteWithChildren
   '/_app/cart': typeof AppCartRoute
+  '/_app/customers': typeof AppCustomersRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/inventory': typeof AppInventoryRoute
   '/_app/revenue': typeof AppRevenueRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/bills'
     | '/cart'
+    | '/customers'
     | '/dashboard'
     | '/inventory'
     | '/revenue'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/bills'
     | '/cart'
+    | '/customers'
     | '/dashboard'
     | '/inventory'
     | '/revenue'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_app/bills'
     | '/_app/cart'
+    | '/_app/customers'
     | '/_app/dashboard'
     | '/_app/inventory'
     | '/_app/revenue'
@@ -258,6 +270,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/customers': {
+      id: '/_app/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof AppCustomersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/cart': {
       id: '/_app/cart'
       path: '/cart'
@@ -297,6 +316,7 @@ const AppBillsRouteWithChildren = AppBillsRoute._addFileChildren(
 interface AppRouteChildren {
   AppBillsRoute: typeof AppBillsRouteWithChildren
   AppCartRoute: typeof AppCartRoute
+  AppCustomersRoute: typeof AppCustomersRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppInventoryRoute: typeof AppInventoryRoute
   AppRevenueRoute: typeof AppRevenueRoute
@@ -307,6 +327,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppBillsRoute: AppBillsRouteWithChildren,
   AppCartRoute: AppCartRoute,
+  AppCustomersRoute: AppCustomersRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppInventoryRoute: AppInventoryRoute,
   AppRevenueRoute: AppRevenueRoute,
@@ -326,3 +347,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

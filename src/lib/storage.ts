@@ -307,6 +307,57 @@ export const billsStore = {
   },
 };
 
+// --- Customers (derived from bills) ---
+export type Customer = {
+  phone: string;
+  name: string;
+  notes?: string;
+  visits: number;
+  totalSpent: number;
+  lastVisit: string; // ISO
+};
+
+export const customersStore = {
+  /**
+   * Derive unique customers from past bills.
+   * Grouped by phone number (or by name if phone is missing).
+   * Returns most recent first.
+   */
+  async list(): Promise<Customer[]> {
+    const { data, error } = await supabase
+      .from("bills")
+      .select("customer_name, customer_phone, customer_notes, total, created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    const map = new Map<string, Customer>();
+    for (const b of data ?? []) {
+      const phone = (b.customer_phone ?? "").trim();
+      const name = (b.customer_name ?? "").trim();
+      if (!phone && !name) continue;
+      const key = phone || `name:${name.toLowerCase()}`;
+      const existing = map.get(key);
+      const total = Number(b.total) || 0;
+      if (existing) {
+        existing.visits += 1;
+        existing.totalSpent += total;
+        // Keep most recent name/notes (bills are sorted desc, so first wins)
+      } else {
+        map.set(key, {
+          phone,
+          name,
+          notes: (b.customer_notes ?? "").trim() || undefined,
+          visits: 1,
+          totalSpent: total,
+          lastVisit: b.created_at,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.lastVisit < b.lastVisit ? 1 : -1,
+    );
+  },
+};
+
 // --- Theme (localStorage stays — UI preference only) ---
 const THEME_KEY = "pharma.theme";
 export const themeStore = {

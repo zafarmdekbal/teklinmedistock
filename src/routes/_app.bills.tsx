@@ -210,6 +210,28 @@ function BillsPage() {
         </div>
       </Card>
 
+      <Card className="shadow-soft p-4 flex flex-wrap items-center gap-4">
+        <Tabs value={pay} onValueChange={(v) => setPay(v as PayFilter)}>
+          <TabsList>
+            <TabsTrigger value="all">All payments</TabsTrigger>
+            <TabsTrigger value="cash">
+              <Banknote className="h-3.5 w-3.5" /> Cash
+            </TabsTrigger>
+            <TabsTrigger value="online">
+              <Smartphone className="h-3.5 w-3.5" /> Online
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="ml-auto flex flex-wrap gap-3 text-xs">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/15 text-success font-medium">
+            <Banknote className="h-3.5 w-3.5" /> Cash {formatMoney(cashTotal)}
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">
+            <Smartphone className="h-3.5 w-3.5" /> Online {formatMoney(onlineTotal)}
+          </span>
+        </div>
+      </Card>
+
       <Card className="shadow-soft overflow-hidden">
         <Table>
           <TableHeader>
@@ -217,14 +239,16 @@ function BillsPage() {
               <TableHead>Invoice</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Customer</TableHead>
+              <TableHead>Payment</TableHead>
               <TableHead className="text-right">Items</TableHead>
               <TableHead className="text-right">Total</TableHead>
+              <TableHead className="text-right">PDF</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
                   <ReceiptText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   No bills in this range.
                 </TableCell>
@@ -243,9 +267,36 @@ function BillsPage() {
                   </TableCell>
                   <TableCell>{new Date(b.createdAt).toLocaleString()}</TableCell>
                   <TableCell>{b.customerName ?? "Walk-in"}</TableCell>
+                  <TableCell>
+                    <span
+                      className={
+                        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium capitalize " +
+                        (b.paymentMethod === "cash"
+                          ? "bg-success/15 text-success"
+                          : "bg-primary/10 text-primary")
+                      }
+                    >
+                      {b.paymentMethod === "cash" ? (
+                        <Banknote className="h-3 w-3" />
+                      ) : (
+                        <Smartphone className="h-3 w-3" />
+                      )}
+                      {b.paymentMethod}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">{b.items.length}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">
                     {formatMoney(b.total)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => void handleDownload(b, e)}
+                      title="Download PDF"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))

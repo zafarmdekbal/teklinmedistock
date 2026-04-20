@@ -6,6 +6,7 @@ import {
   ShoppingCart,
   ShoppingBag,
   ReceiptText,
+  Users,
   LogOut,
   Pill,
   Moon,
@@ -37,6 +38,7 @@ const nav = [
   { to: "/sell", label: "Sell", icon: ShoppingCart },
   { to: "/cart", label: "Cart", icon: ShoppingBag },
   { to: "/bills", label: "Bills", icon: ReceiptText },
+  { to: "/customers", label: "Customers", icon: Users },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {

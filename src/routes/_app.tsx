@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/app-shell";
+import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_app")({
@@ -28,6 +29,7 @@ function AppLayout() {
   return (
     <AppShell>
       <Outlet />
+      <KeyboardShortcuts />
     </AppShell>
   );
 }

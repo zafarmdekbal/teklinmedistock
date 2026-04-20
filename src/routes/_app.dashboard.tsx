@@ -50,12 +50,46 @@ function DashboardPage() {
     (s, p) => s + (p.costPrice ?? p.price) * p.stock,
     0,
   );
+  const lowStock = products.filter((p) => p.stock <= 10);
+  const expiringSoon = products
+    .filter((p) => {
       const d = new Date(p.expiry).getTime();
       const days = (d - Date.now()) / (1000 * 60 * 60 * 24);
       return days <= 60 && days >= 0;
     })
     .sort((a, b) => new Date(a.expiry).getTime() - new Date(b.expiry).getTime());
   const expired = products.filter((p) => new Date(p.expiry).getTime() < Date.now());
+
+  // Last 14 days revenue trend for the dashboard graph
+  const trendData = useMemo(() => {
+    const days: { label: string; key: string; revenue: number }[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      days.push({
+        key: d.toISOString().slice(0, 10),
+        label: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+        revenue: 0,
+      });
+    }
+    const map = new Map(days.map((d) => [d.key, d]));
+    for (const b of bills) {
+      const k = new Date(b.createdAt).toISOString().slice(0, 10);
+      const row = map.get(k);
+      if (row) row.revenue += b.total;
+    }
+    return days;
+  }, [bills]);
+
+  const trendDelta = useMemo(() => {
+    const half = Math.floor(trendData.length / 2);
+    const first = trendData.slice(0, half).reduce((s, d) => s + d.revenue, 0);
+    const second = trendData.slice(half).reduce((s, d) => s + d.revenue, 0);
+    if (first === 0) return second > 0 ? 100 : 0;
+    return ((second - first) / first) * 100;
+  }, [trendData]);
 
   const stats: Array<{
     label: string;

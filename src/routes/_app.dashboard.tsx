@@ -1,9 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Package, ReceiptText, ShoppingCart, AlertTriangle, IndianRupee } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Package, ReceiptText, ShoppingCart, AlertTriangle, IndianRupee, TrendingUp } from "lucide-react";
 import { productsStore, billsStore, type Product, type Bill } from "@/lib/storage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,

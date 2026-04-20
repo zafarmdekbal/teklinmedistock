@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ReceiptText, Search } from "lucide-react";
+import { Banknote, Download, ReceiptText, Search, Smartphone } from "lucide-react";
 import { billsStore, type Bill } from "@/lib/storage";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,18 +19,24 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { downloadBillPdf } from "@/lib/bill-pdf";
+import { toast } from "sonner";
 
 type FilterRange = "all" | "day" | "month" | "year" | "custom";
-type BillsSearch = { range?: FilterRange; from?: string; to?: string };
+type PayFilter = "all" | "cash" | "online";
+type BillsSearch = { range?: FilterRange; from?: string; to?: string; pay?: PayFilter };
 
 export const Route = createFileRoute("/_app/bills")({
   validateSearch: (search: Record<string, unknown>): BillsSearch => {
     const r = search.range as string | undefined;
     const valid: FilterRange[] = ["all", "day", "month", "year", "custom"];
+    const p = search.pay as string | undefined;
+    const validPay: PayFilter[] = ["all", "cash", "online"];
     return {
       range: valid.includes(r as FilterRange) ? (r as FilterRange) : undefined,
       from: typeof search.from === "string" ? search.from : undefined,
       to: typeof search.to === "string" ? search.to : undefined,
+      pay: validPay.includes(p as PayFilter) ? (p as PayFilter) : undefined,
     };
   },
   component: BillsPage,
@@ -45,6 +52,7 @@ function BillsPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const range: FilterRange = search.range ?? "all";
+  const pay: PayFilter = search.pay ?? "all";
 
   useEffect(() => {
     let cancelled = false;
@@ -102,6 +110,7 @@ function BillsPage() {
       const t = new Date(b.createdAt).getTime();
       if (from && t < from.getTime()) return false;
       if (to && t > to.getTime()) return false;
+      if (pay !== "all" && b.paymentMethod !== pay) return false;
       const q = query.toLowerCase();
       if (
         q &&
@@ -111,9 +120,35 @@ function BillsPage() {
         return false;
       return true;
     });
-  }, [bills, range, search.from, search.to, query]);
+  }, [bills, range, search.from, search.to, query, pay]);
 
   const totalForRange = filtered.reduce((s, b) => s + b.total, 0);
+  const cashTotal = filtered
+    .filter((b) => b.paymentMethod === "cash")
+    .reduce((s, b) => s + b.total, 0);
+  const onlineTotal = filtered
+    .filter((b) => b.paymentMethod === "online")
+    .reduce((s, b) => s + b.total, 0);
+
+  const setPay = (p: PayFilter) => {
+    navigate({
+      search: (prev: BillsSearch) => ({ ...prev, pay: p === "all" ? undefined : p }),
+      replace: true,
+    });
+  };
+
+  const handleDownload = async (b: Bill, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      // Bill list already has full items, but ensure latest from cloud
+      const fresh = (await billsStore.get(b.id)) ?? b;
+      downloadBillPdf(fresh);
+    } catch {
+      downloadBillPdf(b);
+      toast.error("Could not refresh, downloaded cached copy");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -175,6 +210,28 @@ function BillsPage() {
         </div>
       </Card>
 
+      <Card className="shadow-soft p-4 flex flex-wrap items-center gap-4">
+        <Tabs value={pay} onValueChange={(v) => setPay(v as PayFilter)}>
+          <TabsList>
+            <TabsTrigger value="all">All payments</TabsTrigger>
+            <TabsTrigger value="cash">
+              <Banknote className="h-3.5 w-3.5" /> Cash
+            </TabsTrigger>
+            <TabsTrigger value="online">
+              <Smartphone className="h-3.5 w-3.5" /> Online
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="ml-auto flex flex-wrap gap-3 text-xs">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/15 text-success font-medium">
+            <Banknote className="h-3.5 w-3.5" /> Cash {formatMoney(cashTotal)}
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">
+            <Smartphone className="h-3.5 w-3.5" /> Online {formatMoney(onlineTotal)}
+          </span>
+        </div>
+      </Card>
+
       <Card className="shadow-soft overflow-hidden">
         <Table>
           <TableHeader>
@@ -182,14 +239,16 @@ function BillsPage() {
               <TableHead>Invoice</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Customer</TableHead>
+              <TableHead>Payment</TableHead>
               <TableHead className="text-right">Items</TableHead>
               <TableHead className="text-right">Total</TableHead>
+              <TableHead className="text-right">PDF</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
                   <ReceiptText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   No bills in this range.
                 </TableCell>
@@ -208,9 +267,36 @@ function BillsPage() {
                   </TableCell>
                   <TableCell>{new Date(b.createdAt).toLocaleString()}</TableCell>
                   <TableCell>{b.customerName ?? "Walk-in"}</TableCell>
+                  <TableCell>
+                    <span
+                      className={
+                        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium capitalize " +
+                        (b.paymentMethod === "cash"
+                          ? "bg-success/15 text-success"
+                          : "bg-primary/10 text-primary")
+                      }
+                    >
+                      {b.paymentMethod === "cash" ? (
+                        <Banknote className="h-3 w-3" />
+                      ) : (
+                        <Smartphone className="h-3 w-3" />
+                      )}
+                      {b.paymentMethod}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">{b.items.length}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">
                     {formatMoney(b.total)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => void handleDownload(b, e)}
+                      title="Download PDF"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))

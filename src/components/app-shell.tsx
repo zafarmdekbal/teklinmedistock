@@ -106,11 +106,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const themeButton = (
     <Button
-      variant="ghost"
+      variant="outline"
       size="icon"
       onClick={toggle}
       aria-label="Toggle theme"
-      className="relative overflow-hidden shrink-0 hover:bg-accent transition-smooth"
+      title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+      className="relative overflow-hidden shrink-0 border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground transition-smooth"
     >
       <Sun
         className={cn(
@@ -134,10 +135,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const sellButton = (
     <Link
       to="/sell"
+      title="New sale (F2)"
       className="inline-flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-medium shadow-soft hover:shadow-glow hover:scale-[1.03] transition-smooth shrink-0"
     >
       <ShoppingCart className="h-4 w-4" />
-      <span className="hidden xs:inline sm:inline">Sell</span>
+      <span className="hidden xs:inline sm:inline">New sale</span>
     </Link>
   );
 

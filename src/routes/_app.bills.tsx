@@ -110,6 +110,7 @@ function BillsPage() {
       const t = new Date(b.createdAt).getTime();
       if (from && t < from.getTime()) return false;
       if (to && t > to.getTime()) return false;
+      if (pay !== "all" && b.paymentMethod !== pay) return false;
       const q = query.toLowerCase();
       if (
         q &&
@@ -119,9 +120,35 @@ function BillsPage() {
         return false;
       return true;
     });
-  }, [bills, range, search.from, search.to, query]);
+  }, [bills, range, search.from, search.to, query, pay]);
 
   const totalForRange = filtered.reduce((s, b) => s + b.total, 0);
+  const cashTotal = filtered
+    .filter((b) => b.paymentMethod === "cash")
+    .reduce((s, b) => s + b.total, 0);
+  const onlineTotal = filtered
+    .filter((b) => b.paymentMethod === "online")
+    .reduce((s, b) => s + b.total, 0);
+
+  const setPay = (p: PayFilter) => {
+    navigate({
+      search: (prev: BillsSearch) => ({ ...prev, pay: p === "all" ? undefined : p }),
+      replace: true,
+    });
+  };
+
+  const handleDownload = async (b: Bill, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      // Bill list already has full items, but ensure latest from cloud
+      const fresh = (await billsStore.get(b.id)) ?? b;
+      downloadBillPdf(fresh);
+    } catch {
+      downloadBillPdf(b);
+      toast.error("Could not refresh, downloaded cached copy");
+    }
+  };
 
   return (
     <div className="space-y-6">

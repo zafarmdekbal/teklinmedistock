@@ -42,6 +42,18 @@ function BillDetailPage() {
     };
   }, [id]);
 
+  const stats = useMemo(() => {
+    if (!bill) return null;
+    const itemCount = bill.items.reduce((s, it) => s + it.qty, 0);
+    const cost = bill.items.reduce(
+      (s, it) => s + (it.costPrice ?? 0) * it.qty,
+      0,
+    );
+    const profit = bill.subtotal - cost;
+    const margin = bill.subtotal > 0 ? (profit / bill.subtotal) * 100 : 0;
+    return { itemCount, cost, profit, margin };
+  }, [bill]);
+
   if (!bill) {
     return (
       <div className="text-center py-20">
@@ -53,18 +65,48 @@ function BillDetailPage() {
     );
   }
 
+  const PayIcon = bill.paymentMethod === "cash" ? Banknote : Smartphone;
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between print:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
         <Button asChild variant="ghost" size="sm">
           <Link to="/bills">
             <ArrowLeft className="h-4 w-4" /> All bills
           </Link>
         </Button>
-        <Button onClick={() => window.print()} className="shadow-soft">
-          <Printer className="h-4 w-4" /> Print
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => window.print()}>
+            <Printer className="h-4 w-4" /> Print
+          </Button>
+          <Button onClick={() => downloadBillPdf(bill)} className="shadow-soft">
+            <Download className="h-4 w-4" /> Download PDF
+          </Button>
+        </div>
       </div>
+
+      {stats && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:hidden">
+          <MiniStat label="Items sold" value={String(stats.itemCount)} icon={User} />
+          <MiniStat
+            label="Payment"
+            value={bill.paymentMethod}
+            icon={PayIcon}
+            valueClass="capitalize"
+          />
+          <MiniStat
+            label="Estimated profit"
+            value={formatMoney(stats.profit)}
+            icon={TrendingUp}
+            valueClass={stats.profit < 0 ? "text-destructive" : "text-success"}
+          />
+          <MiniStat
+            label="Margin"
+            value={`${stats.margin.toFixed(1)}%`}
+            icon={TrendingUp}
+          />
+        </div>
+      )}
 
       <Card className="shadow-soft p-8 animate-scale-in print:shadow-none print:border-0">
         <div className="flex items-start justify-between border-b pb-6">

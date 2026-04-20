@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ReceiptText, Search } from "lucide-react";
+import { Banknote, Download, ReceiptText, Search, Smartphone } from "lucide-react";
 import { billsStore, type Bill } from "@/lib/storage";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,6 +19,8 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { downloadBillPdf } from "@/lib/bill-pdf";
+import { toast } from "sonner";
 
 type FilterRange = "all" | "day" | "month" | "year" | "custom";
 type PayFilter = "all" | "cash" | "online";

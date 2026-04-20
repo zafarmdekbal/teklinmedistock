@@ -190,6 +190,63 @@ function DashboardPage() {
         ))}
       </div>
 
+      <Card className="shadow-soft animate-fade-in">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base">Revenue trend</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Last 14 days · see if your sales are trending up or down.
+            </p>
+          </div>
+          <div
+            className={
+              "inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full " +
+              (trendDelta >= 0
+                ? "bg-success/15 text-success"
+                : "bg-destructive/10 text-destructive")
+            }
+          >
+            <TrendingUp
+              className={"h-3.5 w-3.5 " + (trendDelta < 0 ? "rotate-180" : "")}
+            />
+            {trendDelta >= 0 ? "+" : ""}
+            {trendDelta.toFixed(1)}%
+          </div>
+        </CardHeader>
+        <CardContent className="h-60">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={trendData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--color-popover)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: "var(--color-popover-foreground)",
+                }}
+                formatter={(v) => formatMoney(Number(v))}
+              />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                stroke="var(--color-primary)"
+                strokeWidth={2}
+                fill="url(#rev)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
       <div className="grid lg:grid-cols-2 gap-4">
         <Card className="shadow-soft animate-fade-in">
           <CardHeader>

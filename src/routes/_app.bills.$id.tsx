@@ -1,9 +1,19 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Pill, Printer } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  Banknote,
+  Download,
+  Pill,
+  Printer,
+  Smartphone,
+  TrendingUp,
+  User,
+} from "lucide-react";
 import { billsStore, type Bill } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { downloadBillPdf } from "@/lib/bill-pdf";
 
 export const Route = createFileRoute("/_app/bills/$id")({
   component: BillDetailPage,

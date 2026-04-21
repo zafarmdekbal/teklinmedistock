@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { Pencil, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { Pencil, Plus, ScanLine, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { productsStore, type Product } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { SkuScanner } from "@/components/sku-scanner";
 import { toast } from "sonner";
 
 type InventorySearch = {
@@ -84,6 +85,7 @@ function InventoryPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(empty);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -96,6 +98,39 @@ function InventoryPage() {
     }
     cart.add(p, 1);
     toast.success(`${p.name} added to cart`);
+  };
+
+  const handleScan = (code: string) => {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    // Match an existing product by SKU
+    const match = items.find(
+      (p) => (p.sku ?? "").trim().toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (match) {
+      // Edit flow with all existing info pre-filled
+      setEditing(match);
+      setForm({
+        name: match.name,
+        category: match.category,
+        costPrice: match.costPrice != null ? String(match.costPrice) : "",
+        price: String(match.price),
+        stock: String(match.stock),
+        expiry: match.expiry.slice(0, 10),
+        batch: match.batch ?? "",
+        manufacturer: match.manufacturer ?? "",
+        sku: match.sku ?? trimmed,
+        taxPercent: String(match.taxPercent ?? 0),
+        prescription: !!match.prescription,
+      });
+      toast.success(`Found ${match.name} · adjust stock and save`);
+    } else {
+      // New product flow with SKU pre-filled
+      setEditing(null);
+      setForm({ ...empty, sku: trimmed });
+      toast.info("New SKU — fill the rest to add the product");
+    }
+    setOpen(true);
   };
 
   const refresh = () => {
@@ -237,10 +272,20 @@ function InventoryPage() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setScannerOpen(true)}
+            title="Scan SKU / barcode"
+          >
+            <ScanLine className="h-4 w-4" />
+            <span className="hidden sm:inline">Scan SKU</span>
+          </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button onClick={startAdd} className="shadow-soft">
-                <Plus className="h-4 w-4" /> Add product
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Add product</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
@@ -316,10 +361,22 @@ function InventoryPage() {
                   />
                 </Field>
                 <Field label="SKU">
-                  <Input
-                    value={form.sku}
-                    onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.sku}
+                      onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                      placeholder="Type or scan"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setScannerOpen(true)}
+                      title="Scan barcode"
+                    >
+                      <ScanLine className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </Field>
                 <div className="col-span-2 flex items-center justify-between rounded-lg border p-3">
                   <div>
@@ -430,6 +487,12 @@ function InventoryPage() {
           </TableBody>
         </Table>
       </Card>
+
+      <SkuScanner
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onDetected={handleScan}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { FileWarning, Plus, Search } from "lucide-react";
 import { productsStore, type Product } from "@/lib/storage";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
@@ -168,7 +168,17 @@ function SellPage() {
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{p.name}</div>
+                  <div className="font-medium truncate flex items-center gap-1.5">
+                    {p.name}
+                    {p.prescription && (
+                      <span
+                        className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-destructive/10 text-destructive shrink-0"
+                        title="Prescription required"
+                      >
+                        Rx
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-muted-foreground truncate">
                     {p.category} {p.manufacturer ? `· ${p.manufacturer}` : ""}
                   </div>
@@ -183,6 +193,11 @@ function SellPage() {
                   <Plus className="h-3 w-3" /> Add
                 </span>
               </div>
+              {p.prescription && (
+                <div className="mt-2 inline-flex items-center gap-1 text-[10px] text-destructive/80">
+                  <FileWarning className="h-3 w-3" /> Prescription needed at checkout
+                </div>
+              )}
             </button>
           ))}
         </div>

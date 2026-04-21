@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
@@ -23,12 +23,12 @@ import {
   Legend,
 } from "recharts";
 
-type Range = "7d" | "30d" | "quarter" | "year" | "custom" | "all";
+type Range = "today" | "7d" | "30d" | "quarter" | "year" | "custom" | "all";
 type RevenueSearch = { range?: Range; from?: string; to?: string };
 
 export const Route = createFileRoute("/_app/revenue")({
   validateSearch: (search: Record<string, unknown>): RevenueSearch => {
-    const valid: Range[] = ["7d", "30d", "quarter", "year", "custom", "all"];
+    const valid: Range[] = ["today", "7d", "30d", "quarter", "year", "custom", "all"];
     const r = search.range as string | undefined;
     return {
       range: valid.includes(r as Range) ? (r as Range) : undefined,
@@ -49,6 +49,9 @@ function rangeBounds(range: Range, from?: string, to?: string): { start: Date; e
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   switch (range) {
+    case "today":
+      // start already today 00:00
+      break;
     case "7d":
       start.setDate(start.getDate() - 6);
       break;
@@ -130,8 +133,27 @@ function RevenuePage() {
     return { totalRevenue, totalTax, avgBill, profit, cash, online };
   }, [filteredBills]);
 
-  // Daily breakdown across the range (cap at 90 buckets for perf/readability)
+  // For "today" we'll render an hourly chart instead of daily.
+  const isToday = range === "today";
+
   const dailyData = useMemo(() => {
+    if (isToday) {
+      const hours: { date: string; label: string; revenue: number; bills: number }[] = [];
+      for (let h = 0; h < 24; h++) {
+        hours.push({
+          date: String(h),
+          label: `${String(h).padStart(2, "0")}:00`,
+          revenue: 0,
+          bills: 0,
+        });
+      }
+      for (const b of filteredBills) {
+        const h = new Date(b.createdAt).getHours();
+        hours[h].revenue += b.total;
+        hours[h].bills += 1;
+      }
+      return hours;
+    }
     const days: { date: string; label: string; revenue: number; bills: number }[] = [];
     const dayMs = 1000 * 60 * 60 * 24;
     const totalDays = Math.min(
@@ -161,9 +183,9 @@ function RevenuePage() {
       }
     }
     return days;
-  }, [filteredBills, start, end]);
+  }, [filteredBills, start, end, isToday]);
 
-  // Monthly revenue across the range (last 12 months max)
+  // Monthly revenue across the range (last 24 months max)
   const monthlyData = useMemo(() => {
     const months: { key: string; label: string; revenue: number }[] = [];
     const startMonth = new Date(start.getFullYear(), start.getMonth(), 1);
@@ -203,12 +225,13 @@ function RevenuePage() {
       .slice(0, 5);
   }, [filteredBills]);
 
+  // Modern, cool palette tied into design tokens
   const PIE_COLORS = [
-    "hsl(var(--primary))",
-    "hsl(var(--accent-foreground))",
-    "hsl(var(--success, 142 70% 45%))",
-    "hsl(var(--warning, 38 92% 50%))",
-    "hsl(var(--destructive))",
+    "var(--color-primary)",
+    "#8b5cf6", // violet
+    "#06b6d4", // cyan
+    "#f59e0b", // amber
+    "#ec4899", // pink
   ];
 
   const setRange = (r: Range) => {
@@ -223,12 +246,22 @@ function RevenuePage() {
   };
 
   const rangeLabel: Record<Range, string> = {
+    today: "Today",
     "7d": "Last 7 days",
     "30d": "Last 30 days",
     quarter: "Last 90 days",
     year: "Last 12 months",
     custom: "Custom range",
     all: "All time",
+  };
+
+  const tooltipStyle = {
+    background: "var(--color-popover)",
+    border: "1px solid var(--color-border)",
+    borderRadius: 10,
+    fontSize: 12,
+    color: "var(--color-popover-foreground)",
+    boxShadow: "var(--shadow-soft)",
   };
 
   return (
@@ -252,6 +285,7 @@ function RevenuePage() {
         <CardContent className="p-4 space-y-4">
           <Tabs value={range} onValueChange={(v) => setRange(v as Range)}>
             <TabsList className="flex flex-wrap h-auto">
+              <TabsTrigger value="today">Today</TabsTrigger>
               <TabsTrigger value="7d">Last 7 days</TabsTrigger>
               <TabsTrigger value="30d">Last 30 days</TabsTrigger>
               <TabsTrigger value="quarter">Last quarter</TabsTrigger>
@@ -317,31 +351,43 @@ function RevenuePage() {
 
       <Card className="shadow-soft">
         <CardHeader>
-          <CardTitle className="text-base">Daily revenue</CardTitle>
+          <CardTitle className="text-base">
+            {isToday ? "Hourly revenue · today" : "Daily revenue"}
+          </CardTitle>
         </CardHeader>
         <CardContent className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={dailyData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 11 }} />
+            <AreaChart data={dailyData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="dailyGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.5} />
+                  <stop offset="50%" stopColor="#8b5cf6" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="dailyStroke" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#06b6d4" />
+                  <stop offset="100%" stopColor="#8b5cf6" />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                interval="preserveStartEnd"
+              />
+              <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
               <Tooltip
-                contentStyle={{
-                  background: "hsl(var(--background))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
+                contentStyle={tooltipStyle}
                 formatter={(v) => formatMoney(Number(v))}
               />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="revenue"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
-                dot={false}
+                stroke="url(#dailyStroke)"
+                strokeWidth={2.5}
+                fill="url(#dailyGrad)"
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
@@ -354,19 +400,24 @@ function RevenuePage() {
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+                <defs>
+                  <linearGradient id="monthlyGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8b5cf6" />
+                    <stop offset="100%" stopColor="#06b6d4" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                />
+                <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
                 <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--background))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
+                  contentStyle={tooltipStyle}
+                  cursor={{ fill: "var(--color-muted)", opacity: 0.3 }}
                   formatter={(v) => formatMoney(Number(v))}
                 />
-                <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="revenue" fill="url(#monthlyGrad)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -397,12 +448,7 @@ function RevenuePage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--background))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                      fontSize: 12,
-                    }}
+                    contentStyle={tooltipStyle}
                     formatter={(v) => formatMoney(Number(v))}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />

@@ -6,9 +6,11 @@ import {
   Download,
   Pill,
   Printer,
+  ReceiptText,
   Smartphone,
   TrendingUp,
   User,
+  Wallet,
 } from "lucide-react";
 import { billsStore, type Bill } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
@@ -26,16 +28,24 @@ function formatMoney(n: number) {
 function BillDetailPage() {
   const { id } = useParams({ from: "/_app/bills/$id" });
   const [bill, setBill] = useState<Bill | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     billsStore
       .get(id)
       .then((b) => {
-        if (!cancelled) setBill(b);
+        if (!cancelled) {
+          setBill(b);
+          setLoading(false);
+        }
       })
       .catch(() => {
-        if (!cancelled) setBill(null);
+        if (!cancelled) {
+          setBill(null);
+          setLoading(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -53,6 +63,14 @@ function BillDetailPage() {
     const margin = bill.subtotal > 0 ? (profit / bill.subtotal) * 100 : 0;
     return { itemCount, cost, profit, margin };
   }, [bill]);
+
+  if (loading) {
+    return (
+      <div className="text-center py-20 text-sm text-muted-foreground animate-pulse">
+        Loading bill…
+      </div>
+    );
+  }
 
   if (!bill) {
     return (
@@ -76,18 +94,25 @@ function BillDetailPage() {
           </Link>
         </Button>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => window.print()}>
-            <Printer className="h-4 w-4" /> Print
+          <Button variant="outline" size="sm" onClick={() => window.print()}>
+            <Printer className="h-4 w-4" />
+            <span className="hidden sm:inline">Print</span>
           </Button>
-          <Button onClick={() => downloadBillPdf(bill)} className="shadow-soft">
-            <Download className="h-4 w-4" /> Download PDF
+          <Button
+            size="sm"
+            onClick={() => downloadBillPdf(bill)}
+            className="shadow-soft"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Download PDF</span>
+            <span className="sm:hidden">PDF</span>
           </Button>
         </div>
       </div>
 
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:hidden">
-          <MiniStat label="Items sold" value={String(stats.itemCount)} icon={User} />
+          <MiniStat label="Items sold" value={String(stats.itemCount)} icon={ReceiptText} />
           <MiniStat
             label="Payment"
             value={bill.paymentMethod}
@@ -95,9 +120,9 @@ function BillDetailPage() {
             valueClass="capitalize"
           />
           <MiniStat
-            label="Estimated profit"
+            label="Profit"
             value={formatMoney(stats.profit)}
-            icon={TrendingUp}
+            icon={Wallet}
             valueClass={stats.profit < 0 ? "text-destructive" : "text-success"}
           />
           <MiniStat
@@ -108,14 +133,14 @@ function BillDetailPage() {
         </div>
       )}
 
-      <Card className="shadow-soft p-8 animate-scale-in print:shadow-none print:border-0">
-        <div className="flex items-start justify-between border-b pb-6">
+      <Card className="shadow-soft p-5 sm:p-8 animate-scale-in print:shadow-none print:border-0">
+        <div className="flex items-start justify-between border-b pb-5 gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
               <Pill className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <div className="font-semibold text-lg">MediStock Pharmacy</div>
+              <div className="font-semibold text-lg leading-tight">MediStock Pharmacy</div>
               <div className="text-xs text-muted-foreground">Invoice / Tax bill</div>
             </div>
           </div>
@@ -127,28 +152,35 @@ function BillDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 py-6 text-sm">
+        <div className="grid sm:grid-cols-2 gap-4 py-5 text-sm">
           <div>
             <div className="text-xs text-muted-foreground uppercase tracking-wide">Billed to</div>
-            <div className="font-medium mt-1">{bill.customerName ?? "Walk-in customer"}</div>
+            <div className="font-medium mt-1 flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5 text-muted-foreground" />
+              {bill.customerName ?? "Walk-in customer"}
+            </div>
             {bill.customerPhone && (
               <div className="text-xs text-muted-foreground mt-0.5">{bill.customerPhone}</div>
             )}
             {bill.customerNotes && (
-              <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
-                {bill.customerNotes}
+              <div className="text-xs text-muted-foreground mt-1.5 whitespace-pre-wrap">
+                Notes: {bill.customerNotes}
               </div>
             )}
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <div className="text-xs text-muted-foreground uppercase tracking-wide">Cashier</div>
             <div className="font-medium mt-1">{bill.cashier ?? "—"}</div>
             <div className="text-xs text-muted-foreground uppercase tracking-wide mt-2">Payment</div>
-            <div className="font-medium mt-1 capitalize">{bill.paymentMethod}</div>
+            <div className="font-medium mt-1 capitalize inline-flex items-center gap-1.5 sm:justify-end">
+              <PayIcon className="h-3.5 w-3.5" />
+              {bill.paymentMethod}
+            </div>
           </div>
         </div>
 
-        <div className="rounded-lg overflow-hidden border">
+        {/* Items: table on sm+, stacked rows on mobile */}
+        <div className="rounded-lg overflow-hidden border hidden sm:block">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
@@ -164,7 +196,7 @@ function BillDetailPage() {
                 const line = it.price * it.qty;
                 const tax = (line * it.taxPercent) / 100;
                 return (
-                  <tr key={it.productId} className="border-t">
+                  <tr key={it.productId || it.name} className="border-t">
                     <td className="p-3">{it.name}</td>
                     <td className="p-3 text-right tabular-nums">{it.qty}</td>
                     <td className="p-3 text-right tabular-nums">{it.price.toFixed(2)}</td>
@@ -181,7 +213,30 @@ function BillDetailPage() {
           </table>
         </div>
 
-        <div className="mt-6 ml-auto w-full sm:w-72 space-y-1.5 text-sm">
+        <div className="space-y-2 sm:hidden">
+          {bill.items.map((it) => {
+            const line = it.price * it.qty;
+            const tax = (line * it.taxPercent) / 100;
+            return (
+              <div
+                key={it.productId || it.name}
+                className="border rounded-lg p-3 text-sm"
+              >
+                <div className="flex justify-between gap-2">
+                  <span className="font-medium">{it.name}</span>
+                  <span className="font-semibold tabular-nums">
+                    {(line + tax).toFixed(2)}
+                  </span>
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {it.qty} × {it.price.toFixed(2)} · Tax {it.taxPercent}% ({tax.toFixed(2)})
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 sm:ml-auto w-full sm:w-72 space-y-1.5 text-sm">
           <Row label="Subtotal" value={formatMoney(bill.subtotal)} />
           <Row label="Tax" value={formatMoney(bill.tax)} />
           <div className="border-t pt-2">

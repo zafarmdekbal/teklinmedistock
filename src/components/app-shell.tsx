@@ -12,7 +12,9 @@ import {
   Moon,
   Sun,
   Menu,
+  UserCog,
 } from "lucide-react";
+import { UserProfileDialog } from "@/components/user-profile-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { useCart } from "@/lib/cart-context";
@@ -47,6 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { count } = useCart();
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const sidebarBody = (onNavigate?: () => void) => (
     <aside className="h-full flex flex-col border-r border-sidebar-border bg-sidebar shadow-soft overflow-hidden">
@@ -90,10 +93,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       <div className="p-3 border-t border-sidebar-border space-y-1">
-        <div className="px-3 py-2 text-xs">
-          <div className="font-medium text-sidebar-foreground truncate">{session?.name}</div>
-          <div className="text-muted-foreground truncate">{session?.email}</div>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            setProfileOpen(true);
+          }}
+          className="w-full text-left rounded-lg px-3 py-2 hover:bg-sidebar-accent/60 transition-smooth flex items-center gap-3"
+          aria-label="Open profile"
+        >
+          <div className="h-9 w-9 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-sm font-semibold shadow-glow shrink-0">
+            {(session?.name || session?.email || "U").charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-medium text-sidebar-foreground truncate">
+              {session?.name}
+            </div>
+            <div className="text-[11px] text-muted-foreground truncate">
+              {session?.email}
+            </div>
+          </div>
+          <UserCog className="h-4 w-4 text-muted-foreground shrink-0" />
+        </button>
         <Button
           variant="ghost"
           size="sm"

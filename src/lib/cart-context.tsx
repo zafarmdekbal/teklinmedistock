@@ -3,9 +3,14 @@ import type { PaymentMethod, Product } from "./storage";
 
 export type CartItem = { product: Product; qty: number };
 
-export type Customer = { name: string; phone: string; notes: string };
+export type Customer = {
+  name: string;
+  phone: string;
+  notes: string;
+  prescriptionRef?: string;
+};
 
-const emptyCustomer: Customer = { name: "", phone: "", notes: "" };
+const emptyCustomer: Customer = { name: "", phone: "", notes: "", prescriptionRef: "" };
 
 type CartCtx = {
   items: CartItem[];

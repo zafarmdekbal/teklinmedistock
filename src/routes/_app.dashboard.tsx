@@ -44,7 +44,16 @@ function DashboardPage() {
     };
   }, []);
 
-  const totalSales = bills.reduce((s, b) => s + b.total, 0);
+  // Month-to-date: bills generated and revenue reset to 0 on the 1st of every month
+  const monthStart = useMemo(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  }, []);
+  const billsThisMonth = useMemo(
+    () => bills.filter((b) => new Date(b.createdAt).getTime() >= monthStart),
+    [bills, monthStart],
+  );
+  const totalSales = billsThisMonth.reduce((s, b) => s + b.total, 0);
   // Stock value = buying price × quantity (fallback to selling price if no cost set)
   const stockValue = products.reduce(
     (s, p) => s + (p.costPrice ?? p.price) * p.stock,
@@ -114,14 +123,15 @@ function DashboardPage() {
       to: "/inventory",
     },
     {
-      label: "Bills generated",
-      value: bills.length,
+      label: "Bills this month",
+      value: billsThisMonth.length,
       icon: ReceiptText,
       tint: "bg-accent text-accent-foreground",
       to: "/bills",
+      search: { range: "month" },
     },
     {
-      label: "Total revenue",
+      label: "Revenue this month",
       value: formatMoney(totalSales),
       icon: IndianRupee,
       tint: "bg-success/15 text-success",

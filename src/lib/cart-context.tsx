@@ -8,9 +8,17 @@ export type Customer = {
   phone: string;
   notes: string;
   prescriptionRef?: string;
+  /** Data URL (image/*) of an uploaded prescription photo. */
+  prescriptionPhoto?: string;
 };
 
-const emptyCustomer: Customer = { name: "", phone: "", notes: "", prescriptionRef: "" };
+const emptyCustomer: Customer = {
+  name: "",
+  phone: "",
+  notes: "",
+  prescriptionRef: "",
+  prescriptionPhoto: "",
+};
 
 type CartCtx = {
   items: CartItem[];

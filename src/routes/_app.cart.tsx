@@ -40,7 +40,8 @@ function CartPage() {
   const rxItems = cart.items.filter((i) => i.product.prescription);
   const hasRx = rxItems.length > 0;
   const prescriptionRef = (cart.customer.prescriptionRef ?? "").trim();
-  const rxBlocked = hasRx && !prescriptionRef;
+  const prescriptionPhoto = (cart.customer.prescriptionPhoto ?? "").trim();
+  const rxBlocked = hasRx && !prescriptionRef && !prescriptionPhoto;
 
   const checkout = async () => {
     if (cart.items.length === 0 || submitting) return;
@@ -52,10 +53,12 @@ function CartPage() {
     }
     setSubmitting(true);
     try {
-      // Persist Rx reference into the bill notes so it appears on invoices.
+      // Persist Rx info into the bill notes so it appears on invoices.
       const baseNotes = (cart.customer.notes || "").trim();
-      const rxLine = hasRx ? `Rx ref: ${prescriptionRef}` : "";
-      const combinedNotes = [baseNotes, rxLine].filter(Boolean).join("\n");
+      const rxParts: string[] = [];
+      if (hasRx && prescriptionRef) rxParts.push(`Rx ref: ${prescriptionRef}`);
+      if (hasRx && prescriptionPhoto) rxParts.push("Rx photo: attached");
+      const combinedNotes = [baseNotes, ...rxParts].filter(Boolean).join("\n");
 
       const bill = await billsStore.add({
         customerName: cart.customer.name || undefined,

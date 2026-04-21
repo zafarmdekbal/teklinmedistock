@@ -253,13 +253,15 @@ function BillsPage() {
           </Card>
         ) : (
           filtered.map((b) => (
-            <Link
+            <Card
               key={b.id}
-              to="/bills/$id"
-              params={{ id: b.id }}
-              className="block"
+              className="shadow-soft p-4 active:scale-[0.99] transition-smooth"
             >
-              <Card className="shadow-soft p-4 active:scale-[0.99] transition-smooth">
+              <Link
+                to="/bills/$id"
+                params={{ id: b.id }}
+                className="block"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-semibold text-primary">{b.number}</div>
@@ -279,39 +281,40 @@ function BillsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <span
-                    className={
-                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium capitalize " +
-                      (b.paymentMethod === "cash"
-                        ? "bg-success/15 text-success"
-                        : "bg-primary/10 text-primary")
-                    }
+              </Link>
+              <div className="mt-3 flex items-center justify-between">
+                <span
+                  className={
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium capitalize " +
+                    (b.paymentMethod === "cash"
+                      ? "bg-success/15 text-success"
+                      : "bg-primary/10 text-primary")
+                  }
+                >
+                  {b.paymentMethod === "cash" ? (
+                    <Banknote className="h-3 w-3" />
+                  ) : (
+                    <Smartphone className="h-3 w-3" />
+                  )}
+                  {b.paymentMethod}
+                </span>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => void handleDownload(b, e)}
                   >
-                    {b.paymentMethod === "cash" ? (
-                      <Banknote className="h-3 w-3" />
-                    ) : (
-                      <Smartphone className="h-3 w-3" />
-                    )}
-                    {b.paymentMethod}
-                  </span>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => void handleDownload(b, e)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" asChild>
-                      <span>
-                        <Eye className="h-4 w-4" /> View
-                      </span>
-                    </Button>
-                  </div>
+                    <Download className="h-4 w-4" /> PDF
+                  </Button>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to="/bills/$id" params={{ id: b.id }}>
+                      <Eye className="h-4 w-4" /> View
+                    </Link>
+                  </Button>
                 </div>
-              </Card>
-            </Link>
+              </div>
+            </Card>
           ))
         )}
       </div>

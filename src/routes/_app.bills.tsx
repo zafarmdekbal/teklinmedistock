@@ -394,13 +394,21 @@ function BillsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((b) => (
-                <TableRow key={b.id} className="animate-fade-in">
+              filtered.map((b, idx) => (
+                <TableRow
+                  key={b.id}
+                  data-focused={idx === focusedIdx}
+                  className="animate-fade-in data-[focused=true]:bg-accent/40"
+                >
                   <TableCell>
                     <Link
+                      ref={(el) => {
+                        rowRefs.current[idx] = el;
+                      }}
                       to="/bills/$id"
                       params={{ id: b.id }}
-                      className="font-medium text-primary hover:underline"
+                      onFocus={() => setFocusedIdx(idx)}
+                      className="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1"
                     >
                       {b.number}
                     </Link>
@@ -437,10 +445,11 @@ function BillsPage() {
                       </Link>
                     </Button>
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
                       onClick={(e) => void handleDownload(b, e)}
-                      title="Download PDF"
+                      title="Download PDF (D)"
                     >
                       <Download className="h-4 w-4" />
                     </Button>

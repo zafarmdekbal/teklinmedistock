@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Banknote,
+  FileWarning,
   Minus,
   Plus,
   Smartphone,
@@ -10,6 +11,8 @@ import {
   UserRound,
   Pencil,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { billsStore, productsStore } from "@/lib/storage";

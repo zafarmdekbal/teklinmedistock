@@ -272,10 +272,20 @@ function InventoryPage() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setScannerOpen(true)}
+            title="Scan SKU / barcode"
+          >
+            <ScanLine className="h-4 w-4" />
+            <span className="hidden sm:inline">Scan SKU</span>
+          </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button onClick={startAdd} className="shadow-soft">
-                <Plus className="h-4 w-4" /> Add product
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Add product</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
@@ -351,10 +361,22 @@ function InventoryPage() {
                   />
                 </Field>
                 <Field label="SKU">
-                  <Input
-                    value={form.sku}
-                    onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.sku}
+                      onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                      placeholder="Type or scan"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setScannerOpen(true)}
+                      title="Scan barcode"
+                    >
+                      <ScanLine className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </Field>
                 <div className="col-span-2 flex items-center justify-between rounded-lg border p-3">
                   <div>

@@ -100,6 +100,39 @@ function InventoryPage() {
     toast.success(`${p.name} added to cart`);
   };
 
+  const handleScan = (code: string) => {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    // Match an existing product by SKU
+    const match = items.find(
+      (p) => (p.sku ?? "").trim().toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (match) {
+      // Edit flow with all existing info pre-filled
+      setEditing(match);
+      setForm({
+        name: match.name,
+        category: match.category,
+        costPrice: match.costPrice != null ? String(match.costPrice) : "",
+        price: String(match.price),
+        stock: String(match.stock),
+        expiry: match.expiry.slice(0, 10),
+        batch: match.batch ?? "",
+        manufacturer: match.manufacturer ?? "",
+        sku: match.sku ?? trimmed,
+        taxPercent: String(match.taxPercent ?? 0),
+        prescription: !!match.prescription,
+      });
+      toast.success(`Found ${match.name} · adjust stock and save`);
+    } else {
+      // New product flow with SKU pre-filled
+      setEditing(null);
+      setForm({ ...empty, sku: trimmed });
+      toast.info("New SKU — fill the rest to add the product");
+    }
+    setOpen(true);
+  };
+
   const refresh = () => {
     productsStore
       .list()

@@ -260,22 +260,16 @@ function CartPage() {
                   <span className="font-medium text-foreground">
                     {rxItems.map((i) => i.product.name).join(", ")}
                   </span>
-                  . Enter the doctor&apos;s prescription reference / Rx number to
-                  generate the bill.
+                  . Provide the prescription as a photo <em>or</em> reference
+                  text to continue.
                 </p>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Prescription / Rx reference</Label>
-                  <Input
-                    placeholder="e.g. Dr. Mehta · RX-2025-0421"
-                    value={cart.customer.prescriptionRef ?? ""}
-                    onChange={(e) =>
-                      cart.setCustomer({
-                        ...cart.customer,
-                        prescriptionRef: e.target.value,
-                      })
-                    }
-                  />
-                </div>
+                <RxInput
+                  refValue={cart.customer.prescriptionRef ?? ""}
+                  photoValue={cart.customer.prescriptionPhoto ?? ""}
+                  onChange={(patch) =>
+                    cart.setCustomer({ ...cart.customer, ...patch })
+                  }
+                />
               </CardContent>
             </Card>
           )}

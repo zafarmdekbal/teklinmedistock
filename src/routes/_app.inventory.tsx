@@ -487,6 +487,12 @@ function InventoryPage() {
           </TableBody>
         </Table>
       </Card>
+
+      <SkuScanner
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onDetected={handleScan}
+      />
     </div>
   );
 }

@@ -37,14 +37,30 @@ function CartPage() {
   const [customerOpen, setCustomerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const rxItems = cart.items.filter((i) => i.product.prescription);
+  const hasRx = rxItems.length > 0;
+  const prescriptionRef = (cart.customer.prescriptionRef ?? "").trim();
+  const rxBlocked = hasRx && !prescriptionRef;
+
   const checkout = async () => {
     if (cart.items.length === 0 || submitting) return;
+    if (rxBlocked) {
+      toast.error(
+        "Prescription reference is required for Rx items. Add it below.",
+      );
+      return;
+    }
     setSubmitting(true);
     try {
+      // Persist Rx reference into the bill notes so it appears on invoices.
+      const baseNotes = (cart.customer.notes || "").trim();
+      const rxLine = hasRx ? `Rx ref: ${prescriptionRef}` : "";
+      const combinedNotes = [baseNotes, rxLine].filter(Boolean).join("\n");
+
       const bill = await billsStore.add({
         customerName: cart.customer.name || undefined,
         customerPhone: cart.customer.phone || undefined,
-        customerNotes: cart.customer.notes || undefined,
+        customerNotes: combinedNotes || undefined,
         cashier: session?.name,
         paymentMethod: cart.paymentMethod,
         items: cart.items.map((i) => ({

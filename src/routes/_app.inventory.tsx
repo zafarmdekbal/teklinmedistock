@@ -85,6 +85,7 @@ function InventoryPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(empty);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const search = Route.useSearch();
   const navigate = Route.useNavigate();

@@ -40,7 +40,8 @@ function CartPage() {
   const rxItems = cart.items.filter((i) => i.product.prescription);
   const hasRx = rxItems.length > 0;
   const prescriptionRef = (cart.customer.prescriptionRef ?? "").trim();
-  const rxBlocked = hasRx && !prescriptionRef;
+  const prescriptionPhoto = (cart.customer.prescriptionPhoto ?? "").trim();
+  const rxBlocked = hasRx && !prescriptionRef && !prescriptionPhoto;
 
   const checkout = async () => {
     if (cart.items.length === 0 || submitting) return;
@@ -52,10 +53,12 @@ function CartPage() {
     }
     setSubmitting(true);
     try {
-      // Persist Rx reference into the bill notes so it appears on invoices.
+      // Persist Rx info into the bill notes so it appears on invoices.
       const baseNotes = (cart.customer.notes || "").trim();
-      const rxLine = hasRx ? `Rx ref: ${prescriptionRef}` : "";
-      const combinedNotes = [baseNotes, rxLine].filter(Boolean).join("\n");
+      const rxParts: string[] = [];
+      if (hasRx && prescriptionRef) rxParts.push(`Rx ref: ${prescriptionRef}`);
+      if (hasRx && prescriptionPhoto) rxParts.push("Rx photo: attached");
+      const combinedNotes = [baseNotes, ...rxParts].filter(Boolean).join("\n");
 
       const bill = await billsStore.add({
         customerName: cart.customer.name || undefined,
@@ -257,22 +260,16 @@ function CartPage() {
                   <span className="font-medium text-foreground">
                     {rxItems.map((i) => i.product.name).join(", ")}
                   </span>
-                  . Enter the doctor&apos;s prescription reference / Rx number to
-                  generate the bill.
+                  . Provide the prescription as a photo <em>or</em> reference
+                  text to continue.
                 </p>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Prescription / Rx reference</Label>
-                  <Input
-                    placeholder="e.g. Dr. Mehta · RX-2025-0421"
-                    value={cart.customer.prescriptionRef ?? ""}
-                    onChange={(e) =>
-                      cart.setCustomer({
-                        ...cart.customer,
-                        prescriptionRef: e.target.value,
-                      })
-                    }
-                  />
-                </div>
+                <RxInput
+                  refValue={cart.customer.prescriptionRef ?? ""}
+                  photoValue={cart.customer.prescriptionPhoto ?? ""}
+                  onChange={(patch) =>
+                    cart.setCustomer({ ...cart.customer, ...patch })
+                  }
+                />
               </CardContent>
             </Card>
           )}
@@ -296,7 +293,7 @@ function CartPage() {
                 {submitting
                   ? "Generating…"
                   : rxBlocked
-                    ? "Add Rx reference"
+                    ? "Add Rx photo or reference"
                     : "Generate bill"}
               </Button>
             </CardContent>
@@ -343,6 +340,128 @@ function Row({ label, value, bold }: { label: string; value: string; bold?: bool
     <div className={`flex justify-between ${bold ? "font-semibold text-base" : ""}`}>
       <span className={bold ? "" : "text-muted-foreground"}>{label}</span>
       <span className="tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function RxInput({
+  refValue,
+  photoValue,
+  onChange,
+}: {
+  refValue: string;
+  photoValue: string;
+  onChange: (patch: { prescriptionRef?: string; prescriptionPhoto?: string }) => void;
+}) {
+  const [tab, setTab] = useState<"text" | "photo">(photoValue ? "photo" : "text");
+
+  const onFile = (file: File | null) => {
+    if (!file) {
+      onChange({ prescriptionPhoto: "" });
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file.");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Image must be under 4 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => onChange({ prescriptionPhoto: String(reader.result ?? "") });
+    reader.onerror = () => toast.error("Could not read the file.");
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-1 p-1 bg-muted rounded-lg">
+        <button
+          type="button"
+          onClick={() => setTab("text")}
+          className={cn(
+            "px-3 py-1.5 text-xs font-medium rounded-md transition-smooth",
+            tab === "text"
+              ? "bg-background shadow-soft text-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Reference text
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("photo")}
+          className={cn(
+            "px-3 py-1.5 text-xs font-medium rounded-md transition-smooth",
+            tab === "photo"
+              ? "bg-background shadow-soft text-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Upload photo
+        </button>
+      </div>
+
+      {tab === "text" ? (
+        <div className="space-y-1.5">
+          <Label className="text-xs">Prescription / Rx reference</Label>
+          <Input
+            placeholder="e.g. Dr. Mehta · RX-2025-0421"
+            value={refValue}
+            onChange={(e) => onChange({ prescriptionRef: e.target.value })}
+          />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label className="text-xs">Prescription photo</Label>
+          {photoValue ? (
+            <div className="space-y-2">
+              <img
+                src={photoValue}
+                alt="Prescription"
+                className="max-h-40 w-full object-contain rounded-md border bg-muted"
+              />
+              <div className="flex gap-2">
+                <label className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+                  />
+                  <span className="block text-center text-xs px-2 py-1.5 rounded-md border cursor-pointer hover:bg-accent">
+                    Replace
+                  </span>
+                </label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onChange({ prescriptionPhoto: "" })}
+                >
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <label className="block">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+              />
+              <span className="flex flex-col items-center justify-center gap-1 px-3 py-6 rounded-md border-2 border-dashed text-xs text-muted-foreground cursor-pointer hover:bg-accent/40">
+                <span className="font-medium text-foreground">Tap to upload</span>
+                <span>JPG / PNG · under 4 MB</span>
+              </span>
+            </label>
+          )}
+        </div>
+      )}
     </div>
   );
 }

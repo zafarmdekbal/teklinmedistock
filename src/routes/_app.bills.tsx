@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Banknote,
   Download,
@@ -54,8 +54,11 @@ function BillsPage() {
   const [query, setQuery] = useState("");
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
+  const routerNavigate = useNavigate();
   const range: FilterRange = search.range ?? "all";
   const pay: PayFilter = search.pay ?? "all";
+  const [focusedIdx, setFocusedIdx] = useState(0);
+  const rowRefs = useRef<Array<HTMLAnchorElement | null>>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -152,6 +155,55 @@ function BillsPage() {
     }
   };
 
+  // Keyboard navigation: Up/Down/J/K to move, Enter to open, D to download.
+  useEffect(() => {
+    if (focusedIdx >= filtered.length) setFocusedIdx(0);
+  }, [filtered.length, focusedIdx]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tgt = e.target as HTMLElement | null;
+      if (
+        tgt &&
+        (tgt.tagName === "INPUT" ||
+          tgt.tagName === "TEXTAREA" ||
+          tgt.isContentEditable)
+      ) {
+        return;
+      }
+      if (filtered.length === 0) return;
+      if (e.key === "ArrowDown" || e.key === "j") {
+        e.preventDefault();
+        setFocusedIdx((i) => {
+          const next = Math.min(filtered.length - 1, i + 1);
+          rowRefs.current[next]?.focus();
+          return next;
+        });
+      } else if (e.key === "ArrowUp" || e.key === "k") {
+        e.preventDefault();
+        setFocusedIdx((i) => {
+          const next = Math.max(0, i - 1);
+          rowRefs.current[next]?.focus();
+          return next;
+        });
+      } else if (e.key === "Enter") {
+        const b = filtered[focusedIdx];
+        if (b) {
+          e.preventDefault();
+          routerNavigate({ to: "/bills/$id", params: { id: b.id } });
+        }
+      } else if (e.key === "d" || e.key === "D") {
+        const b = filtered[focusedIdx];
+        if (b) {
+          e.preventDefault();
+          void handleDownload(b, { preventDefault() {}, stopPropagation() {} } as React.MouseEvent);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [filtered, focusedIdx, routerNavigate]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -159,6 +211,12 @@ function BillsPage() {
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Bills</h1>
           <p className="text-sm text-muted-foreground mt-1">
             All sales and invoices generated in your store.
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1 hidden md:block">
+            Tip: use <kbd className="px-1 rounded border bg-muted">↑</kbd>
+            <kbd className="px-1 rounded border bg-muted ml-1">↓</kbd> to move,
+            <kbd className="px-1 rounded border bg-muted ml-1">Enter</kbd> to open,
+            <kbd className="px-1 rounded border bg-muted ml-1">D</kbd> to download PDF.
           </p>
         </div>
         <div className="relative w-full md:w-72">
@@ -253,13 +311,15 @@ function BillsPage() {
           </Card>
         ) : (
           filtered.map((b) => (
-            <Link
+            <Card
               key={b.id}
-              to="/bills/$id"
-              params={{ id: b.id }}
-              className="block"
+              className="shadow-soft p-4 active:scale-[0.99] transition-smooth"
             >
-              <Card className="shadow-soft p-4 active:scale-[0.99] transition-smooth">
+              <Link
+                to="/bills/$id"
+                params={{ id: b.id }}
+                className="block"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-semibold text-primary">{b.number}</div>
@@ -279,39 +339,40 @@ function BillsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <span
-                    className={
-                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium capitalize " +
-                      (b.paymentMethod === "cash"
-                        ? "bg-success/15 text-success"
-                        : "bg-primary/10 text-primary")
-                    }
+              </Link>
+              <div className="mt-3 flex items-center justify-between">
+                <span
+                  className={
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium capitalize " +
+                    (b.paymentMethod === "cash"
+                      ? "bg-success/15 text-success"
+                      : "bg-primary/10 text-primary")
+                  }
+                >
+                  {b.paymentMethod === "cash" ? (
+                    <Banknote className="h-3 w-3" />
+                  ) : (
+                    <Smartphone className="h-3 w-3" />
+                  )}
+                  {b.paymentMethod}
+                </span>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => void handleDownload(b, e)}
                   >
-                    {b.paymentMethod === "cash" ? (
-                      <Banknote className="h-3 w-3" />
-                    ) : (
-                      <Smartphone className="h-3 w-3" />
-                    )}
-                    {b.paymentMethod}
-                  </span>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => void handleDownload(b, e)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" asChild>
-                      <span>
-                        <Eye className="h-4 w-4" /> View
-                      </span>
-                    </Button>
-                  </div>
+                    <Download className="h-4 w-4" /> PDF
+                  </Button>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to="/bills/$id" params={{ id: b.id }}>
+                      <Eye className="h-4 w-4" /> View
+                    </Link>
+                  </Button>
                 </div>
-              </Card>
-            </Link>
+              </div>
+            </Card>
           ))
         )}
       </div>
@@ -339,13 +400,21 @@ function BillsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((b) => (
-                <TableRow key={b.id} className="animate-fade-in">
+              filtered.map((b, idx) => (
+                <TableRow
+                  key={b.id}
+                  data-focused={idx === focusedIdx}
+                  className="animate-fade-in data-[focused=true]:bg-accent/40"
+                >
                   <TableCell>
                     <Link
+                      ref={(el) => {
+                        rowRefs.current[idx] = el;
+                      }}
                       to="/bills/$id"
                       params={{ id: b.id }}
-                      className="font-medium text-primary hover:underline"
+                      onFocus={() => setFocusedIdx(idx)}
+                      className="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1"
                     >
                       {b.number}
                     </Link>
@@ -382,10 +451,11 @@ function BillsPage() {
                       </Link>
                     </Button>
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
                       onClick={(e) => void handleDownload(b, e)}
-                      title="Download PDF"
+                      title="Download PDF (D)"
                     >
                       <Download className="h-4 w-4" />
                     </Button>

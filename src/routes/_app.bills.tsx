@@ -212,6 +212,12 @@ function BillsPage() {
           <p className="text-sm text-muted-foreground mt-1">
             All sales and invoices generated in your store.
           </p>
+          <p className="text-[11px] text-muted-foreground mt-1 hidden md:block">
+            Tip: use <kbd className="px-1 rounded border bg-muted">↑</kbd>
+            <kbd className="px-1 rounded border bg-muted ml-1">↓</kbd> to move,
+            <kbd className="px-1 rounded border bg-muted ml-1">Enter</kbd> to open,
+            <kbd className="px-1 rounded border bg-muted ml-1">D</kbd> to download PDF.
+          </p>
         </div>
         <div className="relative w-full md:w-72">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

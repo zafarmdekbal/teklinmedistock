@@ -19,7 +19,13 @@ const SHORTCUTS = [
   { keys: "F3", label: "Inventory" },
   { keys: "F4", label: "Cart" },
   { keys: "F5", label: "Bills" },
+  { keys: "F6", label: "Customers" },
+  { keys: "F7", label: "Revenue" },
   { keys: "F9", label: "Checkout (generate bill from cart)" },
+  { keys: "↑ ↓ / J K", label: "Move between bills (on Bills page)" },
+  { keys: "Enter", label: "Open focused bill" },
+  { keys: "D", label: "Download focused bill PDF" },
+  { keys: "/", label: "Focus the global search" },
   { keys: "?", label: "Show this cheatsheet" },
   { keys: "Esc", label: "Close popups" },
 ];
@@ -63,6 +69,19 @@ export function KeyboardShortcuts() {
           return go("/cart");
         case "F5":
           return go("/bills");
+        case "F6":
+          return go("/customers");
+        case "F7":
+          return go("/revenue");
+        case "/": {
+          // Focus the global search
+          e.preventDefault();
+          const input = document.querySelector<HTMLInputElement>(
+            'input[type="search"], input[placeholder*="Search" i]',
+          );
+          input?.focus();
+          return;
+        }
         case "?":
           e.preventDefault();
           setOpen((v) => !v);

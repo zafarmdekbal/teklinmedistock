@@ -228,6 +228,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+
+      <UserProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
   );
 }

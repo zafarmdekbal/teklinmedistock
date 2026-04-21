@@ -155,6 +155,55 @@ function BillsPage() {
     }
   };
 
+  // Keyboard navigation: Up/Down/J/K to move, Enter to open, D to download.
+  useEffect(() => {
+    if (focusedIdx >= filtered.length) setFocusedIdx(0);
+  }, [filtered.length, focusedIdx]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tgt = e.target as HTMLElement | null;
+      if (
+        tgt &&
+        (tgt.tagName === "INPUT" ||
+          tgt.tagName === "TEXTAREA" ||
+          tgt.isContentEditable)
+      ) {
+        return;
+      }
+      if (filtered.length === 0) return;
+      if (e.key === "ArrowDown" || e.key === "j") {
+        e.preventDefault();
+        setFocusedIdx((i) => {
+          const next = Math.min(filtered.length - 1, i + 1);
+          rowRefs.current[next]?.focus();
+          return next;
+        });
+      } else if (e.key === "ArrowUp" || e.key === "k") {
+        e.preventDefault();
+        setFocusedIdx((i) => {
+          const next = Math.max(0, i - 1);
+          rowRefs.current[next]?.focus();
+          return next;
+        });
+      } else if (e.key === "Enter") {
+        const b = filtered[focusedIdx];
+        if (b) {
+          e.preventDefault();
+          routerNavigate({ to: "/bills/$id", params: { id: b.id } });
+        }
+      } else if (e.key === "d" || e.key === "D") {
+        const b = filtered[focusedIdx];
+        if (b) {
+          e.preventDefault();
+          void handleDownload(b, { preventDefault() {}, stopPropagation() {} } as React.MouseEvent);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [filtered, focusedIdx, routerNavigate]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">

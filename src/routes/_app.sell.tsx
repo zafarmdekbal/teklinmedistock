@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { FileWarning, Plus, Search } from "lucide-react";
 import { productsStore, type Product } from "@/lib/storage";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";

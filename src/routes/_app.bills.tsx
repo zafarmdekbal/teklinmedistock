@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Banknote,
   Download,
@@ -54,8 +54,11 @@ function BillsPage() {
   const [query, setQuery] = useState("");
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
+  const routerNavigate = useNavigate();
   const range: FilterRange = search.range ?? "all";
   const pay: PayFilter = search.pay ?? "all";
+  const [focusedIdx, setFocusedIdx] = useState(0);
+  const rowRefs = useRef<Array<HTMLAnchorElement | null>>([]);
 
   useEffect(() => {
     let cancelled = false;

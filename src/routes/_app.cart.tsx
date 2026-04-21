@@ -131,7 +131,17 @@ function CartPage() {
                     className="flex items-center gap-3 py-3 animate-fade-in"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{i.product.name}</div>
+                      <div className="font-medium truncate flex items-center gap-1.5">
+                        {i.product.name}
+                        {i.product.prescription && (
+                          <span
+                            className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-destructive/10 text-destructive shrink-0"
+                            title="Prescription required"
+                          >
+                            Rx
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         {formatMoney(i.product.price)} · {i.product.taxPercent ?? 0}% tax
                       </div>
@@ -233,6 +243,40 @@ function CartPage() {
             </CardContent>
           </Card>
 
+          {hasRx && (
+            <Card className="shadow-soft border-destructive/40">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2 text-destructive">
+                  <FileWarning className="h-4 w-4" /> Prescription required
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  This sale contains {rxItems.length} Rx item
+                  {rxItems.length === 1 ? "" : "s"}:{" "}
+                  <span className="font-medium text-foreground">
+                    {rxItems.map((i) => i.product.name).join(", ")}
+                  </span>
+                  . Enter the doctor&apos;s prescription reference / Rx number to
+                  generate the bill.
+                </p>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Prescription / Rx reference</Label>
+                  <Input
+                    placeholder="e.g. Dr. Mehta · RX-2025-0421"
+                    value={cart.customer.prescriptionRef ?? ""}
+                    onChange={(e) =>
+                      cart.setCustomer({
+                        ...cart.customer,
+                        prescriptionRef: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="shadow-soft">
             <CardHeader>
               <CardTitle className="text-base">Summary</CardTitle>
@@ -247,9 +291,13 @@ function CartPage() {
                 className="w-full shadow-soft mt-3"
                 size="lg"
                 onClick={() => void checkout()}
-                disabled={cart.items.length === 0 || submitting}
+                disabled={cart.items.length === 0 || submitting || rxBlocked}
               >
-                {submitting ? "Generating…" : "Generate bill"}
+                {submitting
+                  ? "Generating…"
+                  : rxBlocked
+                    ? "Add Rx reference"
+                    : "Generate bill"}
               </Button>
             </CardContent>
           </Card>

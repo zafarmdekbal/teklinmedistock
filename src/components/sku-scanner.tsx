@@ -25,6 +25,26 @@ export function SkuScanner({ open, onOpenChange, onDetected }: Props) {
   const [starting, setStarting] = useState(false);
   const [manual, setManual] = useState("");
 
+  const pickPreferredCamera = async () => {
+    const cameras = await Html5Qrcode.getCameras();
+    if (cameras.length === 0) {
+      throw new DOMException("No camera was found on this device.", "NotFoundError");
+    }
+
+    const preferred = cameras.find((camera) => {
+      const label = camera.label.toLowerCase();
+      return (
+        label.includes("back") ||
+        label.includes("rear") ||
+        label.includes("environment") ||
+        label.includes("triple") ||
+        label.includes("wide")
+      );
+    });
+
+    return preferred?.id ?? cameras[0].id;
+  };
+
   // Stop on close
   useEffect(() => {
     if (!open) {
@@ -70,12 +90,7 @@ export function SkuScanner({ open, onOpenChange, onDetected }: Props) {
 
     setStarting(true);
     try {
-      // Touch getUserMedia inside the user gesture so the browser shows the prompt.
-      const probe = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-      });
-      // Release the probe stream — html5-qrcode will open its own.
-      probe.getTracks().forEach((t) => t.stop());
+      const cameraId = await pickPreferredCamera();
 
       const scanner = new Html5Qrcode(containerId, {
         formatsToSupport: [
@@ -93,7 +108,7 @@ export function SkuScanner({ open, onOpenChange, onDetected }: Props) {
       scannerRef.current = scanner;
 
       await scanner.start(
-        { facingMode: "environment" },
+        cameraId,
         { fps: 10, qrbox: { width: 240, height: 140 } },
         (decoded) => {
           onDetected(decoded.trim());
@@ -115,6 +130,9 @@ export function SkuScanner({ open, onOpenChange, onDetected }: Props) {
         msg = "No camera was found on this device.";
       } else if (err?.name === "NotReadableError") {
         msg = "Another app is using the camera. Close it and retry.";
+      } else if (msg.includes("Unable to access camera")) {
+        msg =
+          "Camera could not start in this browser. Allow camera access, then tap Start camera again. If it still fails, use the manual SKU entry below.";
       }
       setError(msg);
       await stopScanner();

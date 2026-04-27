@@ -13,6 +13,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+import { DashboardSkeleton } from "@/components/loading-skeleton";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,
@@ -25,19 +26,23 @@ function formatMoney(n: number) {
 function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     Promise.all([productsStore.list(), billsStore.list()])
       .then(([p, b]) => {
         if (cancelled) return;
         setProducts(p);
         setBills(b);
+        setLoading(false);
       })
       .catch(() => {
         if (cancelled) return;
         setProducts([]);
         setBills([]);
+        setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -49,17 +54,22 @@ function DashboardPage() {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
   }, []);
+  
   const billsThisMonth = useMemo(
     () => bills.filter((b) => new Date(b.createdAt).getTime() >= monthStart),
     [bills, monthStart],
   );
+  
   const totalSales = billsThisMonth.reduce((s, b) => s + b.total, 0);
+  
   // Stock value = buying price × quantity (fallback to selling price if no cost set)
   const stockValue = products.reduce(
     (s, p) => s + (p.costPrice ?? p.price) * p.stock,
     0,
   );
+  
   const lowStock = products.filter((p) => p.stock <= 10);
+  
   const expiringSoon = products
     .filter((p) => {
       const d = new Date(p.expiry).getTime();
@@ -67,6 +77,7 @@ function DashboardPage() {
       return days <= 60 && days >= 0;
     })
     .sort((a, b) => new Date(a.expiry).getTime() - new Date(b.expiry).getTime());
+    
   const expired = products.filter((p) => new Date(p.expiry).getTime() < Date.now());
 
   // Last 14 days revenue trend for the dashboard graph
@@ -99,6 +110,8 @@ function DashboardPage() {
     if (first === 0) return second > 0 ? 100 : 0;
     return ((second - first) / first) * 100;
   }, [trendData]);
+
+  if (loading) return <DashboardSkeleton />;
 
   const stats: Array<{
     label: string;

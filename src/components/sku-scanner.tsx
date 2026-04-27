@@ -45,7 +45,7 @@ export function SkuScanner({ open, onOpenChange, onDetected }: Props) {
     return preferred?.id ?? cameras[0].id;
   };
 
-  // Stop on close
+  // Cleanup on unmount or when closed
   useEffect(() => {
     if (!open) {
       void stopScanner();
@@ -54,18 +54,24 @@ export function SkuScanner({ open, onOpenChange, onDetected }: Props) {
       setStarting(false);
       setManual("");
     }
+    return () => {
+      // Ensure we stop the camera if the component unmounts
+      void stopScanner();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const stopScanner = async () => {
     const s = scannerRef.current;
-    scannerRef.current = null;
     if (!s) return;
+    scannerRef.current = null;
     try {
-      await s.stop();
+      if (s.isScanning) {
+        await s.stop();
+      }
       await s.clear();
-    } catch {
-      /* noop */
+    } catch (e) {
+      console.warn("Scanner stop/clear error:", e);
     }
   };
 
@@ -91,6 +97,12 @@ export function SkuScanner({ open, onOpenChange, onDetected }: Props) {
     setStarting(true);
     try {
       const cameraId = await pickPreferredCamera();
+
+      // Ensure container exists
+      const container = document.getElementById(containerId);
+      if (!container) {
+        throw new Error("Scanner container not found");
+      }
 
       const scanner = new Html5Qrcode(containerId, {
         formatsToSupport: [
@@ -135,7 +147,7 @@ export function SkuScanner({ open, onOpenChange, onDetected }: Props) {
           "Camera could not start in this browser. Allow camera access, then tap Start camera again. If it still fails, use the manual SKU entry below.";
       }
       setError(msg);
-      await stopScanner();
+      void stopScanner();
     } finally {
       setStarting(false);
     }
@@ -162,20 +174,53 @@ export function SkuScanner({ open, onOpenChange, onDetected }: Props) {
         </DialogHeader>
 
         <div className="space-y-3">
-          <div
-            id={containerId}
-            className="w-full aspect-[4/3] bg-muted rounded-lg overflow-hidden grid place-items-center text-xs text-muted-foreground relative"
-          >
+          {/* 
+            ISOLATION: The div with containerId is kept EMPTY so React doesn't manage its children.
+            This prevents "NotFoundError: Failed to execute 'removeChild' on 'Node'" 
+            when html5-qrcode and React both try to manipulate the same DOM nodes.
+          */}
+          <div className="relative w-full aspect-[4/3] bg-muted rounded-lg overflow-hidden flex items-center justify-center border">
+            {/* Force centering of injected video and canvas elements */}
+            <style>
+              {`
+                #${containerId} {
+                  display: flex !important;
+                  align-items: center !important;
+                  justify-content: center !important;
+                }
+                #${containerId} video {
+                  width: 100% !important;
+                  height: 100% !important;
+                  object-fit: cover !important;
+                }
+                #${containerId} canvas {
+                  position: absolute !important;
+                  left: 50% !important;
+                  top: 50% !important;
+                  transform: translate(-50%, -50%) !important;
+                }
+              `}
+            </style>
+            <div
+              id={containerId}
+              className="absolute inset-0 w-full h-full"
+            />
+            
             {!running && !starting && (
               <Button
                 type="button"
                 onClick={() => void startScanner()}
-                className="shadow-soft"
+                className="shadow-soft z-10"
               >
                 <Camera className="h-4 w-4" /> Start camera
               </Button>
             )}
-            {starting && "Requesting camera…"}
+            
+            {starting && (
+              <div className="text-xs text-muted-foreground animate-pulse z-10">
+                Requesting camera…
+              </div>
+            )}
           </div>
 
           {error && (

@@ -288,22 +288,22 @@ export const billsStore = {
       .select()
       .single();
     if (insErr) throw insErr;
+    const itemsRows: BillItemRow[] = b.items.map((it) => ({
+      bill_id: bill.id,
+      product_id: it.productId || null,
+      name: it.name,
+      price: it.price,
+      cost_price: it.costPrice ?? null,
+      qty: it.qty,
+      tax_percent: it.taxPercent,
+    }));
     if (b.items.length > 0) {
       const { error: itErr } = await supabase.from("bill_items").insert(
-        b.items.map((it) => ({
-          bill_id: bill.id,
-          user_id,
-          product_id: it.productId || null,
-          name: it.name,
-          price: it.price,
-          cost_price: it.costPrice ?? null,
-          qty: it.qty,
-          tax_percent: it.taxPercent,
-        })),
+        itemsRows.map((it) => ({ ...it, user_id })),
       );
       if (itErr) throw itErr;
     }
-    return rowToBill(bill as BillRow, []);
+    return rowToBill(bill as BillRow, itemsRows);
   },
 };
 

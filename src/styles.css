@@ -220,3 +220,22 @@
 .animate-fade-in { animation: fade-in 0.4s ease-out both; }
 .animate-slide-in { animation: slide-in 0.35s ease-out both; }
 .animate-scale-in { animation: scale-in 0.3s ease-out both; }
+
+@media print {
+  @page {
+    margin: 0.5cm;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .print\:hidden {
+    display: none !important;
+  }
+  /* Ensure the bill card takes full width and has no shadows during print */
+  .animate-scale-in {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}

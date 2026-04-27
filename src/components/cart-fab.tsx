@@ -16,6 +16,7 @@ export function CartFab() {
   return (
     <Link
       to="/cart"
+      preload="intent"
       aria-label={`Open cart with ${count} items`}
       className={cn(
         "fixed z-40 bottom-5 right-5 sm:bottom-7 sm:right-7",

@@ -52,7 +52,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const sidebarBody = (onNavigate?: () => void) => (
-    <aside className="h-full flex flex-col border-r border-sidebar-border bg-sidebar shadow-soft overflow-hidden">
+    <aside className="h-full flex flex-col border-r border-sidebar-border bg-sidebar shadow-soft overflow-hidden print:hidden">
       <div className="flex items-center gap-2 px-6 py-5 border-b border-sidebar-border">
         <div className="h-9 w-9 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow shrink-0">
           <Pill className="h-5 w-5 text-primary-foreground" />
@@ -72,6 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={to}
               to={to}
+              preload="intent"
               onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-smooth",
@@ -158,6 +159,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const sellButton = (
     <Link
       to="/sell"
+      preload="intent"
       title="New sale (F2)"
       className="inline-flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-medium shadow-soft hover:shadow-glow hover:scale-[1.03] transition-smooth shrink-0"
     >
@@ -168,7 +170,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const main = (
     <div className="h-full flex flex-col min-w-0 bg-gradient-soft">
-      <header className="h-14 flex items-center gap-2 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-8 border-b border-border bg-background/70 backdrop-blur-md sticky top-0 z-10">
+      <header className="h-14 flex items-center gap-2 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-8 border-b border-border bg-background/70 backdrop-blur-md sticky top-0 z-10 print:hidden">
         {/* Mobile hamburger -> opens sidebar sheet */}
         <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
           <SheetTrigger asChild>
@@ -198,10 +200,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {themeButton}
       </header>
 
-      <main className="flex-1 overflow-auto px-3 sm:px-4 md:px-8 py-5 sm:py-6 md:py-8 animate-fade-in">
+      <main className="flex-1 overflow-auto px-3 sm:px-4 md:px-8 py-5 sm:py-6 md:py-8 animate-fade-in print:p-0 print:overflow-visible">
         {children}
       </main>
-      <CartFab />
+      <div className="print:hidden">
+        <CartFab />
+      </div>
     </div>
   );
 

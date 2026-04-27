@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Pencil, Plus, ScanLine, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { productsStore, type Product } from "@/lib/storage";
@@ -26,6 +26,8 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { SkuScanner } from "@/components/sku-scanner";
 import { toast } from "sonner";
+
+import { TableSkeleton } from "@/components/loading-skeleton";
 
 type InventorySearch = {
   add?: number;
@@ -78,6 +80,7 @@ function InventoryPage() {
   const { q: qParam } = Route.useSearch();
   const [items, setItems] = useState<Product[]>([]);
   const [query, setQuery] = useState(qParam ?? "");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (typeof qParam === "string") setQuery(qParam);
@@ -134,38 +137,58 @@ function InventoryPage() {
   };
 
   const refresh = () => {
+    setLoading(true);
     productsStore
       .list()
-      .then(setItems)
-      .catch(() => setItems([]));
+      .then((data) => {
+        setItems(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setItems([]);
+        setLoading(false);
+      });
   };
   useEffect(refresh, []);
+
+  const filtered = useMemo(() => {
+    return items.filter((p) => {
+      const q = query.toLowerCase();
+      if (
+        q &&
+        !p.name.toLowerCase().includes(q) &&
+        !p.category.toLowerCase().includes(q) &&
+        !(p.sku ?? "").toLowerCase().includes(q)
+      )
+        return false;
+
+      if (search.filter === "low") return p.stock <= 10;
+      if (search.filter === "expiring") {
+        const d = new Date(p.expiry).getTime();
+        const days = (d - Date.now()) / (1000 * 60 * 60 * 24);
+        return days <= 60 && days >= 0;
+      }
+      if (search.filter === "expired") {
+        return new Date(p.expiry).getTime() < Date.now();
+      }
+      return true;
+    });
+  }, [items, query, search.filter]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+  }, [filtered]);
 
   useEffect(() => {
     if (search.add) {
       setEditing(null);
       setForm(empty);
       setOpen(true);
-      navigate({ search: {}, replace: true });
+      navigate({ search: (prev) => ({ ...prev, add: undefined }), replace: true });
     }
   }, [search.add, navigate]);
 
-  const filtered = items.filter((p) => {
-    const q = query.toLowerCase();
-    const matchesQuery =
-      !q ||
-      p.name.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q) ||
-      (p.sku ?? "").toLowerCase().includes(q);
-    if (!matchesQuery) return false;
-    if (search.filter === "low") return p.stock <= 10;
-    if (search.filter === "expired") return new Date(p.expiry).getTime() < Date.now();
-    if (search.filter === "expiring") {
-      const days = (new Date(p.expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
-      return days >= 0 && days <= 60;
-    }
-    return true;
-  });
+  if (loading && items.length === 0) return <TableSkeleton cols={6} />;
 
   const startAdd = () => {
     setEditing(null);

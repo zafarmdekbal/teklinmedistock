@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Minus, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
+import { SellSkeleton } from "@/components/loading-skeleton";
 
 type SellSearch = { add?: string };
 
@@ -144,11 +145,7 @@ function SellPage() {
       </div>
 
       {loading ? (
-        <Card className="shadow-soft">
-          <CardContent className="py-12 text-center text-sm text-muted-foreground animate-pulse">
-            Loading products…
-          </CardContent>
-        </Card>
+        <SellSkeleton />
       ) : filtered.length === 0 ? (
         <Card className="shadow-soft">
           <CardContent className="py-12 text-center text-sm text-muted-foreground">

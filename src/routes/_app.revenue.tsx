@@ -22,6 +22,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import { TableSkeleton } from "@/components/loading-skeleton";
 
 type Range = "today" | "7d" | "30d" | "quarter" | "year" | "custom" | "all";
 type RevenueSearch = { range?: Range; from?: string; to?: string };
@@ -85,15 +86,24 @@ function RevenuePage() {
 
   const range: Range = search.range ?? "30d";
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     billsStore
       .list()
       .then((b) => {
-        if (!cancelled) setBills(b);
+        if (!cancelled) {
+          setBills(b);
+          setLoading(false);
+        }
       })
       .catch(() => {
-        if (!cancelled) setBills([]);
+        if (!cancelled) {
+          setBills([]);
+          setLoading(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -263,6 +273,8 @@ function RevenuePage() {
     color: "var(--color-popover-foreground)",
     boxShadow: "var(--shadow-soft)",
   };
+
+  if (loading && bills.length === 0) return <TableSkeleton cols={4} rows={10} />;
 
   return (
     <div className="space-y-6">

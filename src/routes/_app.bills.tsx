@@ -45,6 +45,8 @@ export const Route = createFileRoute("/_app/bills")({
   component: BillsPage,
 });
 
+import { TableSkeleton } from "@/components/loading-skeleton";
+
 function formatMoney(n: number) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "INR" }).format(n);
 }
@@ -52,6 +54,7 @@ function formatMoney(n: number) {
 function BillsPage() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const routerNavigate = useNavigate();
@@ -62,13 +65,20 @@ function BillsPage() {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     billsStore
       .list()
       .then((b) => {
-        if (!cancelled) setBills(b);
+        if (!cancelled) {
+          setBills(b);
+          setLoading(false);
+        }
       })
       .catch(() => {
-        if (!cancelled) setBills([]);
+        if (!cancelled) {
+          setBills([]);
+          setLoading(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -204,6 +214,8 @@ function BillsPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [filtered, focusedIdx, routerNavigate]);
 
+  if (loading && bills.length === 0) return <TableSkeleton cols={7} />;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -313,33 +325,28 @@ function BillsPage() {
           filtered.map((b) => (
             <Card
               key={b.id}
-              className="shadow-soft p-4 active:scale-[0.99] transition-smooth"
+              className="shadow-soft p-4 active:scale-[0.99] transition-smooth cursor-pointer hover:border-primary/30"
+              onClick={() => routerNavigate({ to: "/bills/$id", params: { id: b.id } })}
             >
-              <Link
-                to="/bills/$id"
-                params={{ id: b.id }}
-                className="block"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-semibold text-primary">{b.number}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {new Date(b.createdAt).toLocaleString()}
-                    </div>
-                    <div className="text-sm mt-1.5 truncate">
-                      {b.customerName ?? "Walk-in"}
-                    </div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-semibold text-primary">{b.number}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {new Date(b.createdAt).toLocaleString()}
                   </div>
-                  <div className="text-right shrink-0">
-                    <div className="font-semibold tabular-nums">
-                      {formatMoney(b.total)}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {b.items.length} item{b.items.length === 1 ? "" : "s"}
-                    </div>
+                  <div className="text-sm mt-1.5 truncate">
+                    {b.customerName ?? "Walk-in"}
                   </div>
                 </div>
-              </Link>
+                <div className="text-right shrink-0">
+                  <div className="font-semibold tabular-nums">
+                    {formatMoney(b.total)}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {b.items.length} item{b.items.length === 1 ? "" : "s"}
+                  </div>
+                </div>
+              </div>
               <div className="mt-3 flex items-center justify-between">
                 <span
                   className={
@@ -356,7 +363,7 @@ function BillsPage() {
                   )}
                   {b.paymentMethod}
                 </span>
-                <div className="flex gap-1">
+                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                   <Button
                     type="button"
                     variant="outline"
@@ -404,7 +411,8 @@ function BillsPage() {
                 <TableRow
                   key={b.id}
                   data-focused={idx === focusedIdx}
-                  className="animate-fade-in data-[focused=true]:bg-accent/40"
+                  className="animate-fade-in data-[focused=true]:bg-accent/40 cursor-pointer hover:bg-muted/30"
+                  onClick={() => routerNavigate({ to: "/bills/$id", params: { id: b.id } })}
                 >
                   <TableCell>
                     <Link
@@ -414,6 +422,7 @@ function BillsPage() {
                       to="/bills/$id"
                       params={{ id: b.id }}
                       onFocus={() => setFocusedIdx(idx)}
+                      onClick={(e) => e.stopPropagation()}
                       className="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1"
                     >
                       {b.number}
@@ -444,7 +453,7 @@ function BillsPage() {
                   <TableCell className="text-right tabular-nums font-medium">
                     {formatMoney(b.total)}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <Button asChild variant="ghost" size="icon" title="View details">
                       <Link to="/bills/$id" params={{ id: b.id }}>
                         <Eye className="h-4 w-4" />

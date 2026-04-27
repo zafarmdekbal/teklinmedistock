@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { downloadBillPdf } from "@/lib/bill-pdf";
 
+import { BillDetailSkeleton } from "@/components/loading-skeleton";
+
 export const Route = createFileRoute("/_app/bills/$id")({
   component: BillDetailPage,
 });
@@ -64,13 +66,7 @@ function BillDetailPage() {
     return { itemCount, cost, profit, margin };
   }, [bill]);
 
-  if (loading) {
-    return (
-      <div className="text-center py-20 text-sm text-muted-foreground animate-pulse">
-        Loading bill…
-      </div>
-    );
-  }
+  if (loading) return <BillDetailSkeleton />;
 
   if (!bill) {
     return (

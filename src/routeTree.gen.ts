@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppSellRouteImport } from './routes/_app.sell'
 import { Route as AppRevenueRouteImport } from './routes/_app.revenue'
 import { Route as AppInventoryRouteImport } from './routes/_app.inventory'
@@ -22,6 +23,7 @@ import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppCustomersRouteImport } from './routes/_app.customers'
 import { Route as AppCartRouteImport } from './routes/_app.cart'
 import { Route as AppBillsRouteImport } from './routes/_app.bills'
+import { Route as AppBillsIndexRouteImport } from './routes/_app.bills.index'
 import { Route as AppBillsIdRouteImport } from './routes/_app.bills.$id'
 
 const SignupRoute = SignupRouteImport.update({
@@ -51,6 +53,11 @@ const AppRoute = AppRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSellRoute = AppSellRouteImport.update({
@@ -88,6 +95,11 @@ const AppBillsRoute = AppBillsRouteImport.update({
   path: '/bills',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBillsIndexRoute = AppBillsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppBillsRoute,
+} as any)
 const AppBillsIdRoute = AppBillsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -107,22 +119,25 @@ export interface FileRoutesByFullPath {
   '/inventory': typeof AppInventoryRoute
   '/revenue': typeof AppRevenueRoute
   '/sell': typeof AppSellRoute
+  '/settings': typeof AppSettingsRoute
   '/bills/$id': typeof AppBillsIdRoute
+  '/bills/': typeof AppBillsIndexRoute
 }
 export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/bills': typeof AppBillsRouteWithChildren
   '/cart': typeof AppCartRoute
   '/customers': typeof AppCustomersRoute
   '/dashboard': typeof AppDashboardRoute
   '/inventory': typeof AppInventoryRoute
   '/revenue': typeof AppRevenueRoute
   '/sell': typeof AppSellRoute
+  '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
   '/bills/$id': typeof AppBillsIdRoute
+  '/bills': typeof AppBillsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -138,8 +153,10 @@ export interface FileRoutesById {
   '/_app/inventory': typeof AppInventoryRoute
   '/_app/revenue': typeof AppRevenueRoute
   '/_app/sell': typeof AppSellRoute
+  '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/bills/$id': typeof AppBillsIdRoute
+  '/_app/bills/': typeof AppBillsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -156,22 +173,25 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/revenue'
     | '/sell'
+    | '/settings'
     | '/bills/$id'
+    | '/bills/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/signup'
-    | '/bills'
     | '/cart'
     | '/customers'
     | '/dashboard'
     | '/inventory'
     | '/revenue'
     | '/sell'
+    | '/settings'
     | '/'
     | '/bills/$id'
+    | '/bills'
   id:
     | '__root__'
     | '/_app'
@@ -186,8 +206,10 @@ export interface FileRouteTypes {
     | '/_app/inventory'
     | '/_app/revenue'
     | '/_app/sell'
+    | '/_app/settings'
     | '/_app/'
     | '/_app/bills/$id'
+    | '/_app/bills/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -242,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/sell': {
       id: '/_app/sell'
       path: '/sell'
@@ -291,6 +320,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBillsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/bills/': {
+      id: '/_app/bills/'
+      path: '/'
+      fullPath: '/bills/'
+      preLoaderRoute: typeof AppBillsIndexRouteImport
+      parentRoute: typeof AppBillsRoute
+    }
     '/_app/bills/$id': {
       id: '/_app/bills/$id'
       path: '/$id'
@@ -303,10 +339,12 @@ declare module '@tanstack/react-router' {
 
 interface AppBillsRouteChildren {
   AppBillsIdRoute: typeof AppBillsIdRoute
+  AppBillsIndexRoute: typeof AppBillsIndexRoute
 }
 
 const AppBillsRouteChildren: AppBillsRouteChildren = {
   AppBillsIdRoute: AppBillsIdRoute,
+  AppBillsIndexRoute: AppBillsIndexRoute,
 }
 
 const AppBillsRouteWithChildren = AppBillsRoute._addFileChildren(
@@ -321,6 +359,7 @@ interface AppRouteChildren {
   AppInventoryRoute: typeof AppInventoryRoute
   AppRevenueRoute: typeof AppRevenueRoute
   AppSellRoute: typeof AppSellRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
@@ -332,6 +371,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInventoryRoute: AppInventoryRoute,
   AppRevenueRoute: AppRevenueRoute,
   AppSellRoute: AppSellRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
 }
 

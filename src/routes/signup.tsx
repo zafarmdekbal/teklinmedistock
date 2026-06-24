@@ -15,6 +15,7 @@ function SignupPage() {
   const { signup, session, ready } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
+  const [pharmacyName, setPharmacyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,7 @@ function SignupPage() {
     }
     setLoading(true);
     try {
-      await signup(name, email, password);
+      await signup(name, email, password, pharmacyName);
       toast.success("Account created — you're signed in");
       navigate({ to: "/dashboard" });
     } catch (err) {
@@ -61,6 +62,16 @@ function SignupPage() {
         <div className="space-y-2">
           <Label htmlFor="name">Full name</Label>
           <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="pharmacyName">Pharmacy / Clinic Name</Label>
+          <Input
+            id="pharmacyName"
+            required
+            placeholder="e.g. Care Pharmacy"
+            value={pharmacyName}
+            onChange={(e) => setPharmacyName(e.target.value)}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>

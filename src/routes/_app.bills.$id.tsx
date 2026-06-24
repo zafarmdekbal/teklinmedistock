@@ -16,6 +16,7 @@ import { billsStore, type Bill } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { downloadBillPdf } from "@/lib/bill-pdf";
+import { useAuth } from "@/lib/auth-context";
 
 import { BillDetailSkeleton } from "@/components/loading-skeleton";
 
@@ -31,6 +32,8 @@ function BillDetailPage() {
   const { id } = useParams({ from: "/_app/bills/$id" });
   const [bill, setBill] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(true);
+  const { session } = useAuth();
+  const pharmacyName = session?.pharmacyName || "MediStock Pharmacy";
 
   useEffect(() => {
     let cancelled = false;
@@ -96,7 +99,7 @@ function BillDetailPage() {
           </Button>
           <Button
             size="sm"
-            onClick={() => downloadBillPdf(bill)}
+            onClick={() => void downloadBillPdf(bill)}
             className="shadow-soft"
           >
             <Download className="h-4 w-4" />
@@ -136,8 +139,13 @@ function BillDetailPage() {
               <Pill className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <div className="font-semibold text-lg leading-tight">MediStock Pharmacy</div>
+              <div className="font-semibold text-lg leading-tight">{pharmacyName}</div>
               <div className="text-xs text-muted-foreground">Invoice / Tax bill</div>
+              {session?.gstNumber && (
+                <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                  GSTIN: {session.gstNumber.toUpperCase()}
+                </div>
+              )}
             </div>
           </div>
           <div className="text-right">
@@ -241,7 +249,7 @@ function BillDetailPage() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-8">
-          Thank you for choosing MediStock — get well soon!
+          Thank you for choosing {pharmacyName} — get well soon!
         </p>
       </Card>
     </div>

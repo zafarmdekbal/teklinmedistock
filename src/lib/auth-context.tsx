@@ -3,13 +3,21 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Session as SbSession, User as SbUser } from "@supabase/supabase-js";
 import { setStorageUser } from "./storage";
 
-export type Session = { userId: string; name: string; email: string };
+export type Session = {
+  userId: string;
+  name: string;
+  email: string;
+  pharmacyName?: string;
+  gstNumber?: string;
+  billColor?: string;
+  signature?: string;
+};
 
 type AuthCtx = {
   session: Session | null;
   ready: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string, pharmacyName?: string) => Promise<void>;
   logout: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
@@ -23,11 +31,22 @@ function toSession(sb: SbSession | null): Session | null {
 }
 
 function userToSession(u: SbUser): Session {
-  const meta = (u.user_metadata ?? {}) as { name?: string; full_name?: string };
+  const meta = (u.user_metadata ?? {}) as {
+    name?: string;
+    full_name?: string;
+    pharmacy_name?: string;
+    gst_number?: string;
+    bill_color?: string;
+    signature?: string;
+  };
   return {
     userId: u.id,
     email: u.email ?? "",
     name: meta.name || meta.full_name || (u.email?.split("@")[0] ?? "User"),
+    pharmacyName: meta.pharmacy_name,
+    gstNumber: meta.gst_number,
+    billColor: meta.bill_color,
+    signature: meta.signature,
   };
 }
 
@@ -60,13 +79,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw new Error(error.message);
     },
-    signup: async (name, email, password) => {
+    signup: async (name, email, password, pharmacyName) => {
       const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { name },
+          data: {
+            name,
+            pharmacy_name: pharmacyName || undefined,
+          },
           emailRedirectTo: redirectTo,
         },
       });

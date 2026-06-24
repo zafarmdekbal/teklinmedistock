@@ -13,6 +13,7 @@ import {
   Sun,
   Menu,
   UserCog,
+  Settings,
 } from "lucide-react";
 import { UserProfileDialog } from "@/components/user-profile-dialog";
 import { useAuth } from "@/lib/auth-context";
@@ -41,6 +42,7 @@ const nav = [
   { to: "/cart", label: "Cart", icon: ShoppingBag },
   { to: "/bills", label: "Bills", icon: ReceiptText },
   { to: "/customers", label: "Customers", icon: Users },
+  { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {

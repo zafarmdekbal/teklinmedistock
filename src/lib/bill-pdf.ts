@@ -194,7 +194,7 @@ export async function downloadBillPdf(bill: Bill) {
   }
 
   // ===== Signature (On Last Page) =====
-  const totalPages = doc.internal.getNumberOfPages();
+  const totalPages = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
   doc.setPage(totalPages);
 
   const sigWidth = 120;
@@ -205,7 +205,7 @@ export async function downloadBillPdf(bill: Bill) {
   const footerSpace = 60;
   if (sigY + sigHeight + 30 > pageHeight - footerSpace) {
     doc.addPage();
-    const finalPages = doc.internal.getNumberOfPages();
+    const finalPages = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
     doc.setPage(finalPages);
     sigY = 50; // top of new page
   }

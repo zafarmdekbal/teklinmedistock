@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Pencil, Plus, ScanLine, Search, ShoppingCart, Trash2 } from "lucide-react";
+
 import { useCart } from "@/lib/cart-context";
 import { productsStore, type Product } from "@/lib/storage";
 import { Button } from "@/components/ui/button";

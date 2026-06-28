@@ -194,7 +194,7 @@ export async function downloadBillPdf(bill: Bill) {
   }
 
   // ===== Signature (On Last Page) =====
-  const totalPages = doc.internal.getNumberOfPages();
+  const totalPages = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
   doc.setPage(totalPages);
 
   const sigWidth = 120;

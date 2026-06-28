@@ -185,7 +185,7 @@ function InventoryPage() {
       setEditing(null);
       setForm(empty);
       setOpen(true);
-      navigate({ search: (prev) => ({ ...prev, add: undefined }), replace: true });
+      navigate({ search: (prev: InventorySearch) => ({ ...prev, add: undefined }), replace: true });
     }
   }, [search.add, navigate]);
 

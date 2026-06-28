@@ -299,10 +299,20 @@ export const billsStore = {
     }));
     if (b.items.length > 0) {
       const { error: itErr } = await supabase.from("bill_items").insert(
-        itemsRows.map((it) => ({ ...it, user_id })),
+        itemsRows.map((it) => ({
+          bill_id: it.bill_id,
+          product_id: it.product_id,
+          name: it.name,
+          price: Number(it.price),
+          cost_price: it.cost_price == null ? null : Number(it.cost_price),
+          qty: it.qty,
+          tax_percent: Number(it.tax_percent),
+          user_id,
+        })),
       );
       if (itErr) throw itErr;
     }
+
     return rowToBill(bill as BillRow, itemsRows);
   },
 };

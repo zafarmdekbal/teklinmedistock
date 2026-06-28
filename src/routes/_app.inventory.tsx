@@ -715,5 +715,4 @@ function KeyHint({ k, label }: { k: string; label: string }) {
   );
 }
 
-  );
-}
+

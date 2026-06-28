@@ -444,3 +444,276 @@ function Field({
     </div>
   );
 }
+
+// ---------- Marg-style dense Item Master form ----------
+function MargProductForm({
+  form,
+  setForm,
+  editing,
+  onSubmit,
+  onCancel,
+  onScan,
+}: {
+  form: FormState;
+  setForm: (f: FormState) => void;
+  editing: boolean;
+  onSubmit: (e: FormEvent) => void;
+  onCancel: () => void;
+  onScan: () => void;
+}) {
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Enter advances to next focusable input (Marg style); Shift+Enter goes back.
+  const handleKey = (e: KeyboardEvent<HTMLFormElement>) => {
+    // Ctrl/Cmd + S => save
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      formRef.current?.requestSubmit();
+      return;
+    }
+    if (e.key !== "Enter") return;
+    const target = e.target as HTMLElement;
+    if (target.tagName === "TEXTAREA" || target.getAttribute("type") === "submit") return;
+    e.preventDefault();
+    const focusables = Array.from(
+      formRef.current?.querySelectorAll<HTMLElement>(
+        'input:not([disabled]), select:not([disabled]), button[type="submit"], [role="switch"]',
+      ) ?? [],
+    );
+    const idx = focusables.indexOf(target);
+    if (idx === -1) return;
+    const next = e.shiftKey ? focusables[idx - 1] : focusables[idx + 1];
+    next?.focus();
+    if (next instanceof HTMLInputElement) next.select?.();
+  };
+
+  const margin =
+    form.price && form.costPrice
+      ? (((Number(form.price) - Number(form.costPrice)) / Number(form.price)) * 100).toFixed(1)
+      : null;
+  const stockValue =
+    form.stock && form.costPrice
+      ? (Number(form.stock) * Number(form.costPrice)).toFixed(2)
+      : null;
+
+  return (
+    <form ref={formRef} onSubmit={onSubmit} onKeyDown={handleKey} className="flex flex-col">
+      <div className="px-4 py-3 space-y-3 max-h-[70vh] overflow-y-auto bg-muted/30">
+        {/* Section: Item identity */}
+        <Section title="Item Information" accent="F2">
+          <Row label="Item Name" hint="(Required)" span={2}>
+            <Input
+              autoFocus
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="h-8 text-sm"
+              required
+            />
+          </Row>
+          <Row label="Category">
+            <Input
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              placeholder="Antibiotic / Tablet / Syrup"
+              className="h-8 text-sm"
+            />
+          </Row>
+          <Row label="Manufacturer">
+            <Input
+              value={form.manufacturer}
+              onChange={(e) => setForm({ ...form, manufacturer: e.target.value })}
+              className="h-8 text-sm"
+            />
+          </Row>
+          <Row label="Batch No.">
+            <Input
+              value={form.batch}
+              onChange={(e) => setForm({ ...form, batch: e.target.value })}
+              className="h-8 text-sm font-mono uppercase"
+            />
+          </Row>
+          <Row label="Barcode / SKU">
+            <div className="flex gap-1">
+              <Input
+                value={form.sku}
+                onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                placeholder="Type or scan"
+                className="h-8 text-sm font-mono"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={onScan}
+                title="Scan barcode (F4)"
+              >
+                <ScanLine className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </Row>
+        </Section>
+
+        {/* Section: Pricing */}
+        <Section title="Pricing & Tax" accent="F3">
+          <Row label="Purchase Rate" hint="₹/unit">
+            <Input
+              type="number"
+              step="0.01"
+              value={form.costPrice}
+              onChange={(e) => setForm({ ...form, costPrice: e.target.value })}
+              className="h-8 text-sm text-right tabular-nums"
+            />
+          </Row>
+          <Row label="Sale Rate / MRP" hint="₹/unit (Required)">
+            <Input
+              type="number"
+              step="0.01"
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              className="h-8 text-sm text-right tabular-nums"
+              required
+            />
+          </Row>
+          <Row label="GST %">
+            <Input
+              type="number"
+              step="0.01"
+              value={form.taxPercent}
+              onChange={(e) => setForm({ ...form, taxPercent: e.target.value })}
+              className="h-8 text-sm text-right tabular-nums"
+            />
+          </Row>
+          <Row label="Margin" hint="auto">
+            <div className="h-8 px-2 flex items-center justify-end text-sm tabular-nums rounded-md bg-background border border-input text-muted-foreground">
+              {margin !== null ? `${margin} %` : "—"}
+            </div>
+          </Row>
+        </Section>
+
+        {/* Section: Stock */}
+        <Section title="Stock & Expiry" accent="F5">
+          <Row label="Opening Stock" hint="(Required)">
+            <Input
+              type="number"
+              value={form.stock}
+              onChange={(e) => setForm({ ...form, stock: e.target.value })}
+              className="h-8 text-sm text-right tabular-nums"
+              required
+            />
+          </Row>
+          <Row label="Expiry Date" hint="(Required)">
+            <Input
+              type="date"
+              value={form.expiry}
+              onChange={(e) => setForm({ ...form, expiry: e.target.value })}
+              className="h-8 text-sm"
+              required
+            />
+          </Row>
+          <Row label="Stock Value" hint="auto" span={2}>
+            <div className="h-8 px-2 flex items-center justify-end text-sm tabular-nums rounded-md bg-background border border-input text-muted-foreground">
+              {stockValue !== null ? `₹ ${stockValue}` : "—"}
+            </div>
+          </Row>
+        </Section>
+
+        {/* Section: Flags */}
+        <Section title="Properties" accent="F6">
+          <div className="col-span-full flex items-center justify-between rounded-md border bg-background px-3 py-2">
+            <div>
+              <div className="text-sm font-medium">Prescription (Rx) required</div>
+              <div className="text-[11px] text-muted-foreground">
+                Cashier must capture a prescription before sale.
+              </div>
+            </div>
+            <Switch
+              checked={form.prescription}
+              onCheckedChange={(v) => setForm({ ...form, prescription: v })}
+            />
+          </div>
+        </Section>
+      </div>
+
+      {/* Marg-style status / shortcut bar */}
+      <div className="border-t bg-muted/60 px-4 py-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
+          <KeyHint k="Enter" label="Next" />
+          <KeyHint k="Shift+Enter" label="Prev" />
+          <KeyHint k="Ctrl+S" label="Save" />
+          <KeyHint k="Esc" label="Cancel" />
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" size="sm" className="shadow-soft">
+            {editing ? "Save (Ctrl+S)" : "Add Item (Ctrl+S)"}
+          </Button>
+        </div>
+      </div>
+    </form>
+  );
+}
+
+function Section({
+  title,
+  accent,
+  children,
+}: {
+  title: string;
+  accent?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-md border bg-background overflow-hidden">
+      <div className="flex items-center justify-between bg-muted/70 border-b px-3 py-1.5">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-foreground/80">
+          {title}
+        </div>
+        {accent && (
+          <div className="text-[10px] font-mono text-muted-foreground">{accent}</div>
+        )}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1.5 p-3">{children}</div>
+    </div>
+  );
+}
+
+function Row({
+  label,
+  hint,
+  span,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  span?: 2;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`grid grid-cols-[130px_1fr] items-center gap-2 ${span === 2 ? "md:col-span-2" : ""}`}
+    >
+      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+        {label}
+        {hint && <span className="text-[10px] text-muted-foreground/70">{hint}</span>}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+function KeyHint({ k, label }: { k: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <kbd className="px-1.5 py-0.5 rounded border bg-background font-mono text-[10px] shadow-sm">
+        {k}
+      </kbd>
+      <span>{label}</span>
+    </span>
+  );
+}
+
+  );
+}

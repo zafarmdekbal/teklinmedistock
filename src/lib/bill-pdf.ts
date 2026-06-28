@@ -205,7 +205,7 @@ export async function downloadBillPdf(bill: Bill) {
   const footerSpace = 60;
   if (sigY + sigHeight + 30 > pageHeight - footerSpace) {
     doc.addPage();
-    const finalPages = doc.internal.getNumberOfPages();
+    const finalPages = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
     doc.setPage(finalPages);
     sigY = 50; // top of new page
   }

@@ -312,118 +312,25 @@ function InventoryPage() {
                 <span className="sm:hidden">Add</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>{editing ? "Edit product" : "Add product"}</DialogTitle>
+            <DialogContent className="max-w-4xl p-0 gap-0 overflow-hidden">
+              <DialogHeader className="bg-primary text-primary-foreground px-4 py-2.5 border-b">
+                <DialogTitle className="text-sm font-semibold tracking-wide uppercase flex items-center justify-between">
+                  <span>{editing ? "Edit Item Master" : "New Item Master"}</span>
+                  <span className="text-[10px] font-normal opacity-80 hidden sm:inline">
+                    Enter ▸ Next · Ctrl+S Save · Esc Cancel
+                  </span>
+                </DialogTitle>
               </DialogHeader>
-              <form onSubmit={submit} className="grid grid-cols-2 gap-4">
-                <Field label="Name" className="col-span-2">
-                  <Input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    required
-                  />
-                </Field>
-                <Field label="Category">
-                  <Input
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    placeholder="e.g. Antibiotic"
-                  />
-                </Field>
-                <Field label="Manufacturer">
-                  <Input
-                    value={form.manufacturer}
-                    onChange={(e) => setForm({ ...form, manufacturer: e.target.value })}
-                  />
-                </Field>
-                <Field label="Buying price">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.costPrice}
-                    onChange={(e) => setForm({ ...form, costPrice: e.target.value })}
-                    placeholder="Cost per unit"
-                  />
-                </Field>
-                <Field label="Selling price">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.price}
-                    onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    required
-                  />
-                </Field>
-                <Field label="Stock">
-                  <Input
-                    type="number"
-                    value={form.stock}
-                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                    required
-                  />
-                </Field>
-                <Field label="Expiry">
-                  <Input
-                    type="date"
-                    value={form.expiry}
-                    onChange={(e) => setForm({ ...form, expiry: e.target.value })}
-                    required
-                  />
-                </Field>
-                <Field label="Tax %">
-                  <Input
-                    type="number"
-                    value={form.taxPercent}
-                    onChange={(e) => setForm({ ...form, taxPercent: e.target.value })}
-                  />
-                </Field>
-                <Field label="Batch">
-                  <Input
-                    value={form.batch}
-                    onChange={(e) => setForm({ ...form, batch: e.target.value })}
-                  />
-                </Field>
-                <Field label="SKU">
-                  <div className="flex gap-2">
-                    <Input
-                      value={form.sku}
-                      onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                      placeholder="Type or scan"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setScannerOpen(true)}
-                      title="Scan barcode"
-                    >
-                      <ScanLine className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </Field>
-                <div className="col-span-2 flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <div className="text-sm font-medium">Prescription required</div>
-                    <div className="text-xs text-muted-foreground">
-                      Mark this product as Rx-only.
-                    </div>
-                  </div>
-                  <Switch
-                    checked={form.prescription}
-                    onCheckedChange={(v) => setForm({ ...form, prescription: v })}
-                  />
-                </div>
-                <DialogFooter className="col-span-2">
-                  <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="shadow-soft">
-                    {editing ? "Save changes" : "Add product"}
-                  </Button>
-                </DialogFooter>
-              </form>
+              <MargProductForm
+                form={form}
+                setForm={setForm}
+                editing={!!editing}
+                onSubmit={submit}
+                onCancel={() => setOpen(false)}
+                onScan={() => setScannerOpen(true)}
+              />
             </DialogContent>
+
           </Dialog>
         </div>
       </div>
